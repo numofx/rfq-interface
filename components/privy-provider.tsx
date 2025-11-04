@@ -9,9 +9,16 @@ import { celo } from "wagmi/chains";
 const queryClient = new QueryClient();
 
 export function PrivyWagmiProvider({ children }: { children: React.ReactNode }) {
+  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID as string;
+
+  // Avoid initializing Privy with an invalid appId during build/prerender
+  if (!appId) {
+    return <>{children}</>;
+  }
+
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ""}
+      appId={appId}
       config={{
         // Appearance customization
         appearance: {
