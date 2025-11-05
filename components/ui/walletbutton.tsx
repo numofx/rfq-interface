@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePrivy, useLogin, useLogout } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
@@ -10,15 +9,17 @@ export function WalletButton() {
   const { login } = useLogin({
     onComplete: () => {
       console.log("User logged in successfully");
-      setShowModal(false);
     },
     onError: (error) => {
+      // Suppress expected errors when user exits auth flow
+      if (error === "exited_auth_flow") {
+        return;
+      }
       console.error("Login error:", error);
     },
   });
   const { logout } = useLogout();
   const { address, chain } = useAccount();
-  const [showModal, setShowModal] = useState(false);
 
   const handleConnectClick = () => {
     login();

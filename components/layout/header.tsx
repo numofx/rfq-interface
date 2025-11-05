@@ -1,6 +1,21 @@
-import { WalletButton } from "@/components/ui/walletbutton";
+"use client";
+
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+
+// Dynamically import WalletButton with no SSR to ensure Privy is ready
+const WalletButton = dynamic(
+  () => import("@/components/ui/walletbutton").then((mod) => ({ default: mod.WalletButton })),
+  {
+    ssr: false,
+    loading: () => (
+      <Button disabled className="bg-primary text-primary-foreground rounded-full px-6">
+        Loading...
+      </Button>
+    ),
+  }
+);
 
 interface HeaderProps {
   showWalletButton?: boolean;
