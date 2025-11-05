@@ -13,11 +13,16 @@ export function PrivyWagmiProvider({ children }: { children: React.ReactNode }) 
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID as string;
 
   // Avoid initializing Privy with an invalid appId during build/prerender
+  // But still wrap in WagmiProvider to prevent hook errors
   if (!appId) {
     if (typeof window !== "undefined") {
       console.error("NEXT_PUBLIC_PRIVY_APP_ID is not set. Please add it to your .env.local file.");
     }
-    return <>{children}</>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={config}>{children}</WagmiProvider>
+      </QueryClientProvider>
+    );
   }
 
   return (
