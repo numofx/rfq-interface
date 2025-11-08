@@ -4,14 +4,26 @@ An automated dealer of FX forwards for cross border businesses in Kenya. The app
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies
 
 ```bash
-pnpm dev
-# or
-bun dev
+# from project root
+bun install
 ```
 
+Run the development server
+
 ```bash
-npm install @privy-io/react-auth@^1.95.1 @privy-io/wagmi@^0.2.18 --force
+bun run dev
 ```
+
+Build for production
+
+```bash
+bun run build
+bun run start
+```
+
+Notes
+
+- To add or override a package version with Bun use `bun add <pkg>@<version>` (for example `bun add @privy-io/react-auth@3.5.1`).

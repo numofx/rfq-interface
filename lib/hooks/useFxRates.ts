@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { FX_API } from "@/lib/contracts";
+import { FORWARD_RATE_API as FX_API } from "@/lib/contracts";
 
 export interface FxRate {
   pair: string;

@@ -1,28 +1,19 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
-import { WagmiProvider } from "@privy-io/wagmi";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider } from "wagmi";
 import { config } from "@/lib/wagmi";
 import { celo } from "wagmi/chains";
-import { useState } from "react";
 
 export function PrivyWagmiProvider({ children }: { children: React.ReactNode }) {
-  // Create QueryClient once per component instance, not on every render
-  const [queryClient] = useState(() => new QueryClient());
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID as string;
 
   // Avoid initializing Privy with an invalid appId during build/prerender
-  // But still wrap in WagmiProvider to prevent hook errors
   if (!appId) {
     if (typeof window !== "undefined") {
       console.error("NEXT_PUBLIC_PRIVY_APP_ID is not set. Please add it to your .env.local file.");
     }
-    return (
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>{children}</WagmiProvider>
-      </QueryClientProvider>
-    );
+    return <WagmiProvider config={config}>{children}</WagmiProvider>;
   }
 
   return (
@@ -37,10 +28,10 @@ export function PrivyWagmiProvider({ children }: { children: React.ReactNode }) 
         },
         // Embedded wallets configuration
         embeddedWallets: {
-          createOnLogin: "users-without-wallets",
-          requireUserPasswordOnCreate: false,
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
           showWalletUIs: false, // Hide default wallet UIs for white label experience
-          noPromptOnSignature: true, // Don't show default UI for signatures and transactions
         },
         // Login methods
         // Note: To enable Google, configure it in Privy dashboard first
@@ -51,9 +42,7 @@ export function PrivyWagmiProvider({ children }: { children: React.ReactNode }) 
         supportedChains: [celo],
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>{children}</WagmiProvider>
-      </QueryClientProvider>
+      <WagmiProvider config={config}>{children}</WagmiProvider>
     </PrivyProvider>
   );
 }
