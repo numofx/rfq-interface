@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useForwardRates } from "@/lib/hooks/useFxRates";
 import { useWalletInfo } from "@/lib/hooks/useWallet";
+import Image from "next/image";
 
 interface CalendarPickerProps {
   selectedDate: string;
@@ -226,7 +227,7 @@ export function ForwardInterface() {
               placeholder="0"
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Crect fill='%23B22234' width='60' height='30'/%3E%3Cpath d='M0 3.5h60M0 7h60M0 10.5h60M0 14h60M0 17.5h60M0 21h60M0 24.5h60M0 28h60' stroke='%23fff' stroke-width='2'/%3E%3Crect fill='%233C3B6E' width='24' height='15'/%3E%3C/svg%3E" alt="US Flag" className="w-8 h-5 rounded" />
+              <Image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Crect fill='%23B22234' width='60' height='30'/%3E%3Cpath d='M0 3.5h60M0 7h60M0 10.5h60M0 14h60M0 17.5h60M0 21h60M0 24.5h60M0 28h60' stroke='%23fff' stroke-width='2'/%3E%3Crect fill='%233C3B6E' width='24' height='15'/%3E%3C/svg%3E" alt="US Flag" width={32} height={20} className="w-8 h-5 rounded" unoptimized />
               <span className="text-lg font-semibold text-gray-700">USD</span>
             </div>
           </div>
@@ -274,7 +275,7 @@ export function ForwardInterface() {
 
         {/* KES Amount Output */}
         <div className="mb-6">
-          <div className="text-lg font-semibold text-gray-700 mb-2">You'll pay</div>
+          <div className="text-lg font-semibold text-gray-700 mb-2">You&apos;ll pay</div>
           <div className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
@@ -286,7 +287,7 @@ export function ForwardInterface() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 600'%3E%3Cpath fill='%23000' d='M0 0h900v600H0z'/%3E%3Cpath fill='%23FFF' d='M0 180h900v60H0zm0 180h900v60H0z'/%3E%3Cpath fill='%23006600' d='M0 240h900v180H0z'/%3E%3Cpath fill='%23BA0C2F' d='M0 60h900v120H0zm0 360h900v120H0z'/%3E%3Cg fill='%23FFF' stroke='%23000' stroke-width='15'%3E%3Cellipse cx='450' cy='300' rx='180' ry='210'/%3E%3Cpath d='M450 180v240M360 220l180 160M540 220L360 380'/%3E%3C/g%3E%3C/svg%3E" alt="Kenyan Flag" className="w-8 h-6 rounded" />
+                <Image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 600'%3E%3Cpath fill='%23000' d='M0 0h900v600H0z'/%3E%3Cpath fill='%23FFF' d='M0 180h900v60H0zm0 180h900v60H0z'/%3E%3Cpath fill='%23006600' d='M0 240h900v180H0z'/%3E%3Cpath fill='%23BA0C2F' d='M0 60h900v120H0zm0 360h900v120H0z'/%3E%3Cg fill='%23FFF' stroke='%23000' stroke-width='15'%3E%3Cellipse cx='450' cy='300' rx='180' ry='210'/%3E%3Cpath d='M450 180v240M360 220l180 160M540 220L360 380'/%3E%3C/g%3E%3C/svg%3E" alt="Kenyan Flag" width={32} height={24} className="w-8 h-6 rounded" unoptimized />
                 <span className="text-lg font-semibold text-gray-700">KES</span>
               </div>
             </div>
@@ -297,7 +298,7 @@ export function ForwardInterface() {
         {isFormComplete && (
           <div className="animate-slideDown">
             {/* Dropdown Section */}
-            <div className="mt-6 pt-6 bg-gradient-to-b from-gray-50 to-white rounded-xl p-6 -mx-2">
+              <div className="mt-6 pt-6 bg-linear-to-b from-gray-50 to-white rounded-xl p-6 -mx-2">
               {/* Implied Forward Rate */}
               <div className="mb-6 text-center">
                 <div className="text-sm text-gray-600 mb-1">Forward Rate</div>
@@ -337,7 +338,7 @@ export function ForwardInterface() {
         {/* Footer Text */}
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
-            Know exactly how much KES you'll need - No surprises
+            Know exactly how much KES you&apos;ll need - No surprises
           </p>
         </div>
       </div>

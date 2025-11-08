@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 
 // Dynamically import WalletButton with no SSR to ensure Privy is ready
 const WalletButton = dynamic(
@@ -33,7 +34,7 @@ export function Header({
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <Link href={logoLink}>
-            <img src="/numo-logo.png" alt="Numo" className="h-12" />
+            <Image src="/numo-logo.png" alt="Numo" width={180} height={48} className="h-12" />
           </Link>
         </div>
         <div className="flex-1 flex justify-end">

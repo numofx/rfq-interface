@@ -3,11 +3,10 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Suspense } from "react";
-import dynamic from "next/dynamic";
 import "./globals.css";
 
-// Dynamically import Providers with SSR disabled to prevent Privy initialization during build/prerender
-const Providers = dynamic(() => import("@/components/providers").then((mod) => ({ default: mod.Providers })), { ssr: false });
+// Import Providers - now with SSR enabled since we handle build-time gracefully
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "FX for Businesses | Lock in FX Rates",
