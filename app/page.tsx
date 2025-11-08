@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import USDKESChart from "@/components/USDKESChart";
 import { Header } from "@/components/layout/header";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
@@ -55,7 +56,7 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
             {/* Left: Logo and Copyright */}
             <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-12">
-              <img src="/numo-logo.png" alt="Numo" className="h-8" />
+              <Image src="/numo-logo.png" alt="Numo" width={120} height={32} className="h-8" />
               <p className="text-sm text-muted-foreground">
                 Copyright © 2025 Numo Technologies Inc. All rights reserved
               </p>
@@ -64,7 +65,7 @@ export default function HomePage() {
             {/* Right: Social Links */}
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">
-                Let's stay in touch
+                Let&apos;s stay in touch
               </span>
               <div className="flex items-center gap-2">
                 <a

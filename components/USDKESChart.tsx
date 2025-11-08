@@ -4,57 +4,63 @@ import { useState, useEffect } from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts"
 
 const USDKESChart = () => {
-  const [data, setData] = useState([])
+  interface ChartPoint {
+    day: number
+    monthLabel: string
+    bid: number
+    offer: number
+    forward: number | null
+  }
+  const [data, setData] = useState<ChartPoint[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(true)
   const [showBid, setShowBid] = useState(true)
   const [showOffer, setShowOffer] = useState(true)
   const [showForward, setShowForward] = useState(true)
 
-  // Generate realistic USD/KES data based on actual 2024-2025 trends
-  // Starting from Oct 2024 (~129 KES) to Sept 2025 (~129 KES)
-  const generateHistoricalData = () => {
-    const months = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
-    const points = []
-
-    // Actual trend: Started ~129, peaked early 2024 at ~163, now back to ~129
-    const baseRates = [129.5, 129.2, 129.8, 130.5, 130.7, 128.0, 130.1, 129.8, 129.5, 129.3, 129.4, 129.2]
-
-    // Forward rate segments (step function)
-    const forwardSegments = [
-      { start: 0, end: 90, rate: 130.2 },
-      { start: 90, end: 210, rate: 131.5 },
-      { start: 210, end: 360, rate: 128.8 },
-    ]
-
-    let dayCounter = 0
-    baseRates.forEach((baseRate, monthIdx) => {
-      const daysInMonth = 30
-      for (let day = 0; day < daysInMonth; day++) {
-        const volatility = (Math.random() - 0.5) * 0.4
-        const dayVolatility = Math.sin((day / daysInMonth) * Math.PI) * 0.3
-        const bid = baseRate + volatility + dayVolatility
-        const offer = bid + 0.15 + Math.random() * 0.1
-
-        // Find applicable forward rate
-        const forwardSegment = forwardSegments.find((seg) => dayCounter >= seg.start && dayCounter <= seg.end)
-        const forward = forwardSegment ? forwardSegment.rate : null
-
-        points.push({
-          day: dayCounter,
-          monthLabel: day === 0 ? months[monthIdx] : "",
-          bid: Number.parseFloat(bid.toFixed(2)),
-          offer: Number.parseFloat(offer.toFixed(2)),
-          forward: forward,
-        })
-        dayCounter++
-      }
-    })
-
-    return points
-  }
-
   useEffect(() => {
+    // Generate realistic USD/KES data based on actual 2024-2025 trends
+    // Starting from Oct 2024 (~129 KES) to Sept 2025 (~129 KES)
+    const generateHistoricalData = () => {
+      const months = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+      const points: ChartPoint[] = []
+      // Actual trend: Started ~129, peaked early 2024 at ~163, now back to ~129
+      const baseRates = [129.5, 129.2, 129.8, 130.5, 130.7, 128.0, 130.1, 129.8, 129.5, 129.3, 129.4, 129.2]
+
+      // Forward rate segments (step function)
+      const forwardSegments = [
+        { start: 0, end: 90, rate: 130.2 },
+        { start: 90, end: 210, rate: 131.5 },
+        { start: 210, end: 360, rate: 128.8 },
+      ]
+
+      let dayCounter = 0
+      baseRates.forEach((baseRate, monthIdx) => {
+        const daysInMonth = 30
+        for (let day = 0; day < daysInMonth; day++) {
+          const volatility = (Math.random() - 0.5) * 0.4
+          const dayVolatility = Math.sin((day / daysInMonth) * Math.PI) * 0.3
+          const bid = baseRate + volatility + dayVolatility
+          const offer = bid + 0.15 + Math.random() * 0.1
+
+          // Find applicable forward rate
+          const forwardSegment = forwardSegments.find((seg) => dayCounter >= seg.start && dayCounter <= seg.end)
+          const forward = forwardSegment ? forwardSegment.rate : null
+
+          points.push({
+            day: dayCounter,
+            monthLabel: day === 0 ? months[monthIdx] : "",
+            bid: Number.parseFloat(bid.toFixed(2)),
+            offer: Number.parseFloat(offer.toFixed(2)),
+            forward: forward,
+          })
+          dayCounter++
+        }
+      })
+
+      return points
+    }
+
     const historicalData = generateHistoricalData()
     setData(historicalData)
   }, [])
@@ -76,14 +82,13 @@ const USDKESChart = () => {
   }, [isAnimating, data.length])
 
   const visibleData = data.slice(0, currentIndex + 1)
-  const latestData = visibleData[visibleData.length - 1] || { bid: 129.37, offer: 129.52, forward: 128.8 }
 
   const handleReplay = () => {
     setCurrentIndex(0)
     setIsAnimating(true)
   }
 
-  const CustomTooltip = ({ active, payload }) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-gray-800 text-white px-3 py-2 rounded text-xs">
@@ -95,9 +100,11 @@ const USDKESChart = () => {
     }
     return null
   }
+  const latestData: ChartPoint =
+    (visibleData[visibleData.length - 1] as ChartPoint) || { day: 0, monthLabel: "", bid: 129.37, offer: 129.52, forward: 128.8 }
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 shadow-2xl">
+  <div className="w-full h-full bg-linear-to-br from-slate-700 to-slate-800 rounded-2xl p-6 shadow-2xl">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h2 className="text-white text-xl font-medium mb-1">Exchange Rate USD/KES</h2>
