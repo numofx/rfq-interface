@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "bun@1.3.1",
   "scripts": {
+    "next": "node scripts/next-cli.cjs",
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
