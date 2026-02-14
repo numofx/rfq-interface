@@ -137,7 +137,7 @@ export function ForwardInterface() {
   const [optionType, setOptionType] = useState<OptionType>("call");
   const [selectedPair, setSelectedPair] = useState<"USD/NGN" | "USD/KES">("USD/KES");
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
-  const [usdAmount, setUsdAmount] = useState("0");
+  const [usdAmount, setUsdAmount] = useState("");
   const [strikePrice, setStrikePrice] = useState("2,200.00");
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
@@ -208,222 +208,241 @@ export function ForwardInterface() {
   const quoteCurrency = selectedPair.split("/")[1];
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-gray-50 px-4 py-8">
-      <div className="w-full max-w-[640px] rounded-[30px] bg-gray-100 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.12)] md:p-8">
-        <div className="relative" ref={currencyRef}>
-          <button
-            onClick={() => setShowCurrencyMenu((prev) => !prev)}
-            className="flex w-full items-center justify-between rounded-2xl border border-gray-200 bg-white/40 px-4 py-3 text-left transition hover:bg-white/60"
-            aria-haspopup="menu"
-            aria-expanded={showCurrencyMenu}
-            aria-label="Open currency menu"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-300 bg-white">
-                <Image
-                  src={pairIcon[selectedPair]}
-                  alt={selectedPair}
-                  width={28}
-                  height={28}
-                  className="h-7 w-7 rounded-full"
-                />
-              </div>
-              <p className="text-3xl font-semibold leading-none text-slate-800">
-                {selectedPair}
-              </p>
-            </div>
-            {showCurrencyMenu ? (
-              <ChevronUp className="h-5 w-5 text-gray-500" />
-            ) : (
-              <ChevronDown className="h-5 w-5 text-gray-500" />
-            )}
-          </button>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-6">
+      <div className="relative w-full max-w-[980px]">
+        <div className="absolute -top-14 left-2 flex items-center gap-4">
+          <Image src="/numo-logo.png" alt="Numo" width={156} height={44} className="h-11 w-auto" />
+          <div className="h-8 w-px bg-gray-300" />
+          <h1 className="text-3xl font-semibold text-slate-800">FX Option</h1>
+        </div>
 
-          {showCurrencyMenu && (
-            <div className="absolute left-0 top-full z-50 mt-3 w-full rounded-[28px] border border-gray-200 bg-gray-100 p-4 shadow-xl">
-              <p className="mb-3 px-2 text-sm font-semibold tracking-wide text-slate-500">
-                SELECT PAIR
-              </p>
-              <div className="space-y-2">
-                {pairOptions.map((pair) => {
-                  const isSelected = selectedPair === pair;
-                  return (
-                    <button
-                      key={pair}
-                      onClick={() => {
-                        setSelectedPair(pair);
-                        setShowCurrencyMenu(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
-                        isSelected ? "bg-stone-200" : "bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
-                          <Image
-                            src={pairIcon[pair]}
-                            alt={pair}
-                            width={28}
-                            height={28}
-                            className="h-7 w-7 rounded-full"
-                          />
+        <div className="rounded-[30px] bg-gray-100 p-12 shadow-[0_12px_30px_rgba(15,23,42,0.12)] md:p-14">
+        <div className="space-y-4">
+          <div className="relative" ref={currencyRef}>
+            <button
+              onClick={() => setShowCurrencyMenu((prev) => !prev)}
+              className="flex h-14 w-full items-center justify-between rounded-2xl border border-gray-200 bg-white/40 px-4 text-left transition hover:bg-white/60"
+              aria-haspopup="menu"
+              aria-expanded={showCurrencyMenu}
+              aria-label="Open pair menu"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
+                  <Image
+                    src={pairIcon[selectedPair]}
+                    alt={selectedPair}
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 rounded-full"
+                  />
+                </div>
+                <p className="text-3xl font-semibold leading-none text-slate-800">
+                  {selectedPair}
+                </p>
+              </div>
+              {showCurrencyMenu ? (
+                <ChevronUp className="h-5 w-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-500" />
+              )}
+            </button>
+
+            {showCurrencyMenu && (
+              <div className="absolute left-0 top-full z-50 mt-3 w-full rounded-[28px] border border-gray-200 bg-gray-100 p-4 shadow-xl">
+                <p className="mb-3 px-2 text-sm font-semibold tracking-wide text-slate-500">
+                  SELECT PAIR
+                </p>
+                <div className="space-y-2">
+                  {pairOptions.map((pair) => {
+                    const isSelected = selectedPair === pair;
+                    return (
+                      <button
+                        key={pair}
+                        onClick={() => {
+                          setSelectedPair(pair);
+                          setShowCurrencyMenu(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                          isSelected ? "bg-stone-200" : "bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
+                            <Image
+                              src={pairIcon[pair]}
+                              alt={pair}
+                              width={28}
+                              height={28}
+                              className="h-7 w-7 rounded-full"
+                            />
+                          </div>
+                          <span className="text-2xl font-semibold text-slate-800">{pair}</span>
                         </div>
-                        <span className="text-2xl font-semibold text-slate-800">{pair}</span>
-                      </div>
-                      {isSelected ? <Check className="h-6 w-6 text-black" /> : null}
-                    </button>
-                  );
-                })}
+                        {isSelected ? <Check className="h-6 w-6 text-black" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid h-14 grid-cols-2 rounded-2xl border border-gray-200 bg-gray-100 p-1">
+            <button
+              onClick={() => setOptionType("call")}
+              className={`rounded-xl text-2xl leading-none transition ${
+                optionType === "call"
+                  ? "border border-slate-900 bg-white text-slate-900"
+                  : "text-gray-500"
+              }`}
+            >
+              Call
+            </button>
+            <button
+              onClick={() => setOptionType("put")}
+              className={`rounded-xl text-2xl leading-none transition ${
+                optionType === "put"
+                  ? "border border-slate-900 bg-white text-slate-900"
+                  : "text-gray-500"
+              }`}
+            >
+              Put
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div ref={calendarRef} className="relative">
+              <label className="mb-1 block text-base font-semibold text-slate-700">Expiry</label>
+              <button
+                onClick={() => setShowCalendar((prev) => !prev)}
+                className="flex h-14 w-full items-center justify-between rounded-2xl border border-gray-200 bg-white/50 px-4 text-[22px] leading-none text-slate-600"
+              >
+                <span>{displayDate}</span>
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              </button>
+              {showCalendar && (
+                <CalendarPicker
+                  selectedDate={expiryDate}
+                  onDateSelect={(date) => {
+                    setExpiryDate(date);
+                    setShowCalendar(false);
+                  }}
+                  onClose={() => setShowCalendar(false)}
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-base font-semibold text-slate-700">Strike</label>
+              <div className="flex h-14 items-center gap-2 rounded-2xl border border-gray-200 bg-white/50 px-3 text-[22px] leading-none text-slate-600">
+                <input
+                  value={strikePrice}
+                  onChange={(e) => setStrikePrice(e.target.value)}
+                  className="w-full min-w-0 bg-transparent text-left outline-none"
+                />
+                <span className="whitespace-nowrap text-sm font-semibold text-slate-600">
+                  {quoteCurrency} per USD
+                </span>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 rounded-2xl border border-gray-200 bg-gray-100 p-1">
-          <button
-            onClick={() => setOptionType("call")}
-            className={`rounded-xl py-3 text-2xl leading-none transition ${
-              optionType === "call"
-                ? "border border-slate-900 bg-white text-slate-900"
-                : "text-gray-500"
-            }`}
-          >
-            Call
-          </button>
-          <button
-            onClick={() => setOptionType("put")}
-            className={`rounded-xl py-3 text-2xl leading-none transition ${
-              optionType === "put"
-                ? "border border-slate-900 bg-white text-slate-900"
-                : "text-gray-500"
-            }`}
-          >
-            Put
-          </button>
-        </div>
-
-        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-gray-200 bg-white/50 px-4 py-3 text-[22px] leading-none text-slate-600">
-          <button
-            onClick={() => setShowCalendar((prev) => !prev)}
-            className="flex items-center justify-center gap-2"
-          >
-            {displayDate}
-            <ChevronDown className="h-4 w-4 text-gray-500" />
-          </button>
-          <div className="h-7 w-px bg-gray-300" />
-          <div className="flex items-center justify-center gap-2">
-            <input
-              value={strikePrice}
-              onChange={(e) => setStrikePrice(e.target.value)}
-              className="w-[170px] bg-transparent text-center outline-none"
-            />
-            <ChevronDown className="h-4 w-4 text-gray-500" />
-          </div>
-        </div>
-        <div className="mt-2 text-sm text-slate-500">
-          Strike: {strikePrice} {quoteCurrency} per USD
-        </div>
-
-        <div ref={calendarRef} className="relative">
-          {showCalendar && (
-            <CalendarPicker
-              selectedDate={expiryDate}
-              onDateSelect={(date) => {
-                setExpiryDate(date);
-                setShowCalendar(false);
-              }}
-              onClose={() => setShowCalendar(false)}
-            />
-          )}
-        </div>
-
-        <div className="mt-5 flex items-center justify-between text-[22px] text-slate-500">
-          <span>Notional (USD)</span>
-          <span>Exposure Size</span>
-        </div>
-
-        <div className="mt-2 rounded-2xl border border-gray-300 bg-white/60 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <input
-              value={usdAmount}
-              onChange={(e) => {
-                setUsdAmount(e.target.value);
-                setHasQuoted(false);
-              }}
-              className="w-full bg-transparent text-[52px] leading-none text-slate-800 outline-none"
-              placeholder="0"
-            />
-            <button className="rounded-xl border border-gray-200 bg-gray-100 px-4 py-2 text-[20px] text-slate-600">
-              Max
-            </button>
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-          <p className="text-[22px] leading-none text-slate-500">Indicative Price Per Option</p>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <p className="text-[52px] font-semibold leading-none text-emerald-600">
-              ${indicativePrice.toFixed(2)}
+        <div className="mt-3 space-y-3">
+          <div className="text-[22px] text-slate-500">
+            <span>Notional (USD)</span>
+          </div>
+
+          <div className="rounded-2xl border border-gray-300 bg-white/60 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-[32px] leading-none text-slate-500">$</span>
+              <input
+                value={usdAmount}
+                onChange={(e) => {
+                  setUsdAmount(e.target.value);
+                  setHasQuoted(false);
+                }}
+                className="w-full bg-transparent text-left text-[52px] leading-none text-slate-800 outline-none"
+                placeholder="10,000"
+              />
+              <button className="rounded-lg px-3 py-1 text-sm text-slate-500 transition hover:bg-gray-100">
+                Max
+              </button>
+            </div>
+          </div>
+          <div className="text-base text-slate-600">
+            Protecting: {(parsedNotional * parsedStrike).toLocaleString("en-US", {
+              maximumFractionDigits: 0,
+            })}{" "}
+            {quoteCurrency} exposure
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-base text-slate-600">
+              Indicative premium:{" "}
+              <span className="font-semibold text-emerald-700">${indicativePrice.toFixed(2)}</span>
             </p>
-            <button className="rounded-xl bg-emerald-100 p-3 text-emerald-700">
-              <RefreshCw className="h-6 w-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                <RefreshCw className="h-4 w-4" />
+              </button>
+              <span className="text-sm text-slate-500">updates in {secondsToRefresh}s</span>
+            </div>
           </div>
-          <p className="mt-2 text-[20px] leading-none text-slate-500">
-            Auto refresh in {secondsToRefresh} seconds
+          <div>
+            <button
+              onClick={() => setShowAdvanced((prev) => !prev)}
+              className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 underline-offset-2 hover:underline"
+            >
+              Advanced options
+              {showAdvanced ? (
+                <ChevronUp className="h-4 w-4 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-slate-500" />
+              )}
+            </button>
+            {showAdvanced && (
+              <div className="mt-2 text-sm text-slate-500">
+                Implied Volatility (IV): {ivValue.toFixed(2)}%
+              </div>
+            )}
+          </div>
+
+          <button
+            disabled={isLoading}
+            onClick={() => setHasQuoted(true)}
+            className="w-full rounded-2xl bg-slate-900 py-4 text-[30px] font-semibold leading-none text-white shadow-[0_8px_18px_rgba(15,23,42,0.22)] transition hover:bg-slate-800 disabled:opacity-70"
+          >
+            {isLoading ? "Loading..." : "Request Quote"}
+          </button>
+          <p className="text-center text-sm text-slate-500">
+            Dealers respond after you submit a quote request.
           </p>
         </div>
 
-        <div className="mt-3 rounded-xl border border-gray-200 bg-white/50 px-4 py-3">
-          <button
-            onClick={() => setShowAdvanced((prev) => !prev)}
-            className="flex w-full items-center justify-between text-left text-sm font-medium text-slate-600"
-          >
-            <span>Advanced</span>
-            {showAdvanced ? (
-              <ChevronUp className="h-4 w-4 text-slate-500" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-slate-500" />
-            )}
-          </button>
-          {showAdvanced && (
-            <div className="mt-2 text-sm text-slate-500">
-              Implied Volatility (IV): {ivValue.toFixed(2)}%
-            </div>
-          )}
-        </div>
-
-        <button
-          disabled={isLoading}
-          onClick={() => setHasQuoted(true)}
-          className="mt-5 w-full rounded-2xl bg-slate-900 py-4 text-[28px] leading-none text-white transition hover:bg-slate-800 disabled:opacity-70"
-        >
-          {isLoading ? "Loading..." : "Request Quote"}
-        </button>
-
         {hasQuoted && (
-          <div className="mt-3 rounded-xl border border-slate-200 bg-white/50 px-4 py-3">
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white/50 px-4 py-3">
             <div className="text-sm text-slate-500">Quote Summary</div>
             <div className="mt-2 space-y-2 text-base text-slate-700">
-              <div className="flex items-center justify-between">
-                <span>Notional</span>
-                <span className="font-semibold text-slate-800">
+              <div>
+                <div>Notional</div>
+                <div className="font-semibold text-slate-800">
                   ${parsedNotional.toLocaleString("en-US")}
-                </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Premium</span>
-                <span className="font-semibold text-slate-800">
+              <div>
+                <div>Premium</div>
+                <div className="font-semibold text-slate-800">
                   ${estimatedPremium.toFixed(2)} ({premiumPct.toFixed(3)}%)
-                </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Max payout</span>
-                <span className="font-semibold text-slate-800">
+              <div>
+                <div>Max payout</div>
+                <div className="font-semibold text-slate-800">
                   {optionType === "call"
                     ? `Unlimited above ${Number(strikePrice.replace(/[^0-9.]/g, "") || 0).toLocaleString("en-US")}`
                     : `Unlimited below ${Number(strikePrice.replace(/[^0-9.]/g, "") || 0).toLocaleString("en-US")}`}
-                </span>
+                </div>
               </div>
             </div>
 
@@ -440,6 +459,7 @@ export function ForwardInterface() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
