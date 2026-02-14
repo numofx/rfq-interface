@@ -145,6 +145,7 @@ export function ForwardInterface() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [secondsToRefresh, setSecondsToRefresh] = useState(9);
   const [hasQuoted, setHasQuoted] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
 
@@ -368,12 +369,28 @@ export function ForwardInterface() {
               <RefreshCw className="h-6 w-6" />
             </button>
           </div>
-          <p className="mt-2 text-sm leading-none text-slate-400">
-            IV {ivValue.toFixed(2)}%
-          </p>
           <p className="mt-2 text-[20px] leading-none text-slate-500">
             Auto refresh in {secondsToRefresh} seconds
           </p>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-gray-200 bg-white/50 px-4 py-3">
+          <button
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            className="flex w-full items-center justify-between text-left text-sm font-medium text-slate-600"
+          >
+            <span>Advanced</span>
+            {showAdvanced ? (
+              <ChevronUp className="h-4 w-4 text-slate-500" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-slate-500" />
+            )}
+          </button>
+          {showAdvanced && (
+            <div className="mt-2 text-sm text-slate-500">
+              Implied Volatility (IV): {ivValue.toFixed(2)}%
+            </div>
+          )}
         </div>
 
         <button
