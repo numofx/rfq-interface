@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useForwardRates } from "@/lib/hooks/useFxRates";
 
 interface CalendarPickerProps {
@@ -134,6 +135,8 @@ type OptionType = "call" | "put";
 
 export function ForwardInterface() {
   const [optionType, setOptionType] = useState<OptionType>("call");
+  const [selectedPair, setSelectedPair] = useState<"USD/NGN" | "USD/KES">("USD/KES");
+  const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
   const [usdAmount, setUsdAmount] = useState("0");
   const [strikePrice, setStrikePrice] = useState("2,200.00");
   const [expiryDate, setExpiryDate] = useState(
@@ -141,9 +144,17 @@ export function ForwardInterface() {
   );
   const [showCalendar, setShowCalendar] = useState(false);
   const [secondsToRefresh, setSecondsToRefresh] = useState(9);
+  const [hasQuoted, setHasQuoted] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const currencyRef = useRef<HTMLDivElement>(null);
 
   const { data: forwardRateData, isLoading } = useForwardRates("3M");
+
+  const pairOptions = ["USD/NGN", "USD/KES"] as const;
+  const pairIcon: Record<"USD/NGN" | "USD/KES", string> = {
+    "USD/NGN": "/tokens/ng.svg",
+    "USD/KES": "/tokens/ke.svg",
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -157,17 +168,22 @@ export function ForwardInterface() {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
         setShowCalendar(false);
       }
+      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
+        setShowCurrencyMenu(false);
+      }
     };
-    if (showCalendar) {
+    if (showCalendar || showCurrencyMenu) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showCalendar]);
+  }, [showCalendar, showCurrencyMenu]);
 
-  const parsedAmount = Number(usdAmount.replace(/,/g, "")) || 0;
+  const parsedNotional = Number(usdAmount.replace(/,/g, "")) || 0;
+  const parsedStrike = Number(strikePrice.replace(/[^0-9.]/g, "")) || 1;
   const indicativePrice = forwardRateData?.forwardPoints || 13.33;
   const ivValue = 69.03;
-  const contractCount = parsedAmount > 0 ? parsedAmount / Math.max(indicativePrice, 0.0001) : 0;
+  const contractCount = parsedNotional > 0 ? parsedNotional / Math.max(parsedStrike, 0.0001) : 0;
+  const estimatedPremium = contractCount * indicativePrice;
 
   const displayDate = new Date(expiryDate).toLocaleDateString("en-US", {
     day: "2-digit",
@@ -178,21 +194,73 @@ export function ForwardInterface() {
   return (
     <div className="flex flex-1 items-center justify-center bg-gray-50 px-4 py-8">
       <div className="w-full max-w-[640px] rounded-[30px] bg-gray-100 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.12)] md:p-8">
-        <div className="rounded-2xl border border-gray-200 bg-white/40 px-4 py-3">
-          <div className="flex items-center justify-between">
+        <div className="relative" ref={currencyRef}>
+          <button
+            onClick={() => setShowCurrencyMenu((prev) => !prev)}
+            className="flex w-full items-center justify-between rounded-2xl border border-gray-200 bg-white/40 px-4 py-3 text-left transition hover:bg-white/60"
+            aria-haspopup="menu"
+            aria-expanded={showCurrencyMenu}
+            aria-label="Open currency menu"
+          >
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-lg text-gray-700">
-                ◆
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-300 bg-white">
+                <Image
+                  src={pairIcon[selectedPair]}
+                  alt={selectedPair}
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 rounded-full"
+                />
               </div>
-              <div>
-                <p className="text-4xl font-semibold leading-none text-slate-800">ETH</p>
-                <p className="mt-1 text-3xl leading-none text-slate-500">
-                  $1,957.20 <span className="ml-2 text-pink-500">-$0.86%</span>
-                </p>
+              <p className="text-3xl font-semibold leading-none text-slate-800">
+                {selectedPair}
+              </p>
+            </div>
+            {showCurrencyMenu ? (
+              <ChevronUp className="h-5 w-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-500" />
+            )}
+          </button>
+
+          {showCurrencyMenu && (
+            <div className="absolute left-0 top-full z-50 mt-3 w-full rounded-[28px] border border-gray-200 bg-gray-100 p-4 shadow-xl">
+              <p className="mb-3 px-2 text-sm font-semibold tracking-wide text-slate-500">
+                SELECT PAIR
+              </p>
+              <div className="space-y-2">
+                {pairOptions.map((pair) => {
+                  const isSelected = selectedPair === pair;
+                  return (
+                    <button
+                      key={pair}
+                      onClick={() => {
+                        setSelectedPair(pair);
+                        setShowCurrencyMenu(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                        isSelected ? "bg-stone-200" : "bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
+                          <Image
+                            src={pairIcon[pair]}
+                            alt={pair}
+                            width={28}
+                            height={28}
+                            className="h-7 w-7 rounded-full"
+                          />
+                        </div>
+                        <span className="text-2xl font-semibold text-slate-800">{pair}</span>
+                      </div>
+                      {isSelected ? <Check className="h-6 w-6 text-black" /> : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <ChevronDown className="h-5 w-5 text-gray-500" />
-          </div>
+          )}
         </div>
 
         <div className="mt-4 grid grid-cols-2 rounded-2xl border border-gray-200 bg-gray-100 p-1">
@@ -252,15 +320,18 @@ export function ForwardInterface() {
         </div>
 
         <div className="mt-5 flex items-center justify-between text-[22px] text-slate-500">
-          <span>Amount (USDC)</span>
-          <span>USDC Balance: 0.00</span>
+          <span>Notional (USD)</span>
+          <span>Exposure Size</span>
         </div>
 
         <div className="mt-2 rounded-2xl border border-gray-300 bg-white/60 px-4 py-3">
           <div className="flex items-center gap-3">
             <input
               value={usdAmount}
-              onChange={(e) => setUsdAmount(e.target.value)}
+              onChange={(e) => {
+                setUsdAmount(e.target.value);
+                setHasQuoted(false);
+              }}
               className="w-full bg-transparent text-[52px] leading-none text-slate-800 outline-none"
               placeholder="0"
             />
@@ -274,13 +345,15 @@ export function ForwardInterface() {
           <p className="text-[22px] leading-none text-slate-500">Indicative Price Per Option</p>
           <div className="mt-2 flex items-center justify-between gap-3">
             <p className="text-[52px] font-semibold leading-none text-emerald-600">
-              ${indicativePrice.toFixed(2)}{" "}
-              <span className="text-[42px] text-emerald-700">IV {ivValue.toFixed(2)}%</span>
+              ${indicativePrice.toFixed(2)}
             </p>
             <button className="rounded-xl bg-emerald-100 p-3 text-emerald-700">
               <RefreshCw className="h-6 w-6" />
             </button>
           </div>
+          <p className="mt-2 text-sm leading-none text-slate-400">
+            IV {ivValue.toFixed(2)}%
+          </p>
           <p className="mt-2 text-[20px] leading-none text-slate-500">
             Auto refresh in {secondsToRefresh} seconds
           </p>
@@ -295,10 +368,23 @@ export function ForwardInterface() {
 
         <button
           disabled={isLoading}
+          onClick={() => setHasQuoted(true)}
           className="mt-5 w-full rounded-2xl bg-slate-900 py-4 text-[28px] leading-none text-white transition hover:bg-slate-800 disabled:opacity-70"
         >
           {isLoading ? "Loading..." : "Request Quote"}
         </button>
+
+        {hasQuoted && (
+          <div className="mt-3 rounded-xl border border-slate-200 bg-white/50 px-4 py-3">
+            <div className="text-sm text-slate-500">Quote Summary</div>
+            <div className="mt-1 text-3xl font-semibold leading-none text-slate-800">
+              Cost: ${estimatedPremium.toFixed(2)}
+            </div>
+            <div className="mt-2 text-base text-slate-600">
+              Protects ${parsedNotional.toLocaleString("en-US")} notional
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
