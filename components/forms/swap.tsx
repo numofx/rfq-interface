@@ -184,12 +184,27 @@ export function ForwardInterface() {
   const ivValue = 69.03;
   const contractCount = parsedNotional > 0 ? parsedNotional / Math.max(parsedStrike, 0.0001) : 0;
   const estimatedPremium = contractCount * indicativePrice;
+  const premiumPct = parsedNotional > 0 ? (estimatedPremium / parsedNotional) * 100 : 0;
+  const pairScenario = selectedPair === "USD/NGN"
+    ? { up: 2600, flat: 1500 }
+    : { up: 160, flat: 130 };
+
+  const calculatePayout = (spotAtExpiry: number) => {
+    if (optionType === "call") {
+      return Math.max(spotAtExpiry - parsedStrike, 0) * contractCount;
+    }
+    return Math.max(parsedStrike - spotAtExpiry, 0) * contractCount;
+  };
+
+  const payoutAtUp = calculatePayout(pairScenario.up);
+  const payoutAtFlat = calculatePayout(pairScenario.flat);
 
   const displayDate = new Date(expiryDate).toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short",
     year: "2-digit",
   });
+  const quoteCurrency = selectedPair.split("/")[1];
 
   return (
     <div className="flex flex-1 items-center justify-center bg-gray-50 px-4 py-8">
@@ -296,7 +311,6 @@ export function ForwardInterface() {
           </button>
           <div className="h-7 w-px bg-gray-300" />
           <div className="flex items-center justify-center gap-2">
-            <span>$</span>
             <input
               value={strikePrice}
               onChange={(e) => setStrikePrice(e.target.value)}
@@ -304,6 +318,9 @@ export function ForwardInterface() {
             />
             <ChevronDown className="h-4 w-4 text-gray-500" />
           </div>
+        </div>
+        <div className="mt-2 text-sm text-slate-500">
+          Strike: {strikePrice} {quoteCurrency} per USD
         </div>
 
         <div ref={calendarRef} className="relative">
@@ -359,13 +376,6 @@ export function ForwardInterface() {
           </p>
         </div>
 
-        <div className="mt-5 flex items-center justify-between text-[22px] leading-none">
-          <span className="text-slate-600">Number of Contracts</span>
-          <span className="font-semibold text-slate-800">
-            {contractCount > 0 ? contractCount.toFixed(4) : "---"}
-          </span>
-        </div>
-
         <button
           disabled={isLoading}
           onClick={() => setHasQuoted(true)}
@@ -377,11 +387,39 @@ export function ForwardInterface() {
         {hasQuoted && (
           <div className="mt-3 rounded-xl border border-slate-200 bg-white/50 px-4 py-3">
             <div className="text-sm text-slate-500">Quote Summary</div>
-            <div className="mt-1 text-3xl font-semibold leading-none text-slate-800">
-              Cost: ${estimatedPremium.toFixed(2)}
+            <div className="mt-2 space-y-2 text-base text-slate-700">
+              <div className="flex items-center justify-between">
+                <span>Notional</span>
+                <span className="font-semibold text-slate-800">
+                  ${parsedNotional.toLocaleString("en-US")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Premium</span>
+                <span className="font-semibold text-slate-800">
+                  ${estimatedPremium.toFixed(2)} ({premiumPct.toFixed(3)}%)
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Max payout</span>
+                <span className="font-semibold text-slate-800">
+                  {optionType === "call"
+                    ? `Unlimited above ${Number(strikePrice.replace(/[^0-9.]/g, "") || 0).toLocaleString("en-US")}`
+                    : `Unlimited below ${Number(strikePrice.replace(/[^0-9.]/g, "") || 0).toLocaleString("en-US")}`}
+                </span>
+              </div>
             </div>
-            <div className="mt-2 text-base text-slate-600">
-              Protects ${parsedNotional.toLocaleString("en-US")} notional
+
+            <div className="mt-4 rounded-lg border border-slate-200 bg-white/60 p-3">
+              <div className="text-sm font-medium text-slate-500">Scenario Preview</div>
+              <div className="mt-2 text-sm text-slate-700">
+                If {selectedPair} hits {pairScenario.up.toLocaleString("en-US")} {"->"} payout ~= $
+                {payoutAtUp.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </div>
+              <div className="mt-1 text-sm text-slate-700">
+                If {selectedPair} stays at {pairScenario.flat.toLocaleString("en-US")} {"->"} payout = $
+                {payoutAtFlat.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </div>
             </div>
           </div>
         )}
