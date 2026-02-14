@@ -135,8 +135,8 @@ type OptionType = "call" | "put";
 
 export function ForwardInterface() {
   const [optionType, setOptionType] = useState<OptionType>("call");
-  const [selectedPair, setSelectedPair] = useState<"USD/NGN" | "USD/KES">("USD/KES");
-  const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
+  const [selectedPair, setSelectedPair] = useState<"USDC/NGN" | "USDC/KES">("USDC/NGN");
+  const [showPairMenu, setShowPairMenu] = useState(false);
   const [usdAmount, setUsdAmount] = useState("");
   const [strikePrice, setStrikePrice] = useState("2,200.00");
   const [expiryDate, setExpiryDate] = useState(
@@ -147,14 +147,14 @@ export function ForwardInterface() {
   const [hasQuoted, setHasQuoted] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
-  const currencyRef = useRef<HTMLDivElement>(null);
+  const pairRef = useRef<HTMLDivElement>(null);
 
   const { data: forwardRateData, isLoading } = useForwardRates("3M");
 
-  const pairOptions = ["USD/NGN", "USD/KES"] as const;
-  const pairIcon: Record<"USD/NGN" | "USD/KES", string> = {
-    "USD/NGN": "/tokens/ng.svg",
-    "USD/KES": "/tokens/ke.svg",
+  const pairOptions = ["USDC/NGN", "USDC/KES"] as const;
+  const pairIcon: Record<"USDC/NGN" | "USDC/KES", string> = {
+    "USDC/NGN": "/tokens/ng.svg",
+    "USDC/KES": "/tokens/ke.svg",
   };
 
   useEffect(() => {
@@ -169,15 +169,15 @@ export function ForwardInterface() {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
         setShowCalendar(false);
       }
-      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
-        setShowCurrencyMenu(false);
+      if (pairRef.current && !pairRef.current.contains(event.target as Node)) {
+        setShowPairMenu(false);
       }
     };
-    if (showCalendar || showCurrencyMenu) {
+    if (showCalendar || showPairMenu) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showCalendar, showCurrencyMenu]);
+  }, [showCalendar, showPairMenu]);
 
   const parsedNotional = Number(usdAmount.replace(/,/g, "")) || 0;
   const parsedStrike = Number(strikePrice.replace(/[^0-9.]/g, "")) || 1;
@@ -186,7 +186,7 @@ export function ForwardInterface() {
   const contractCount = parsedNotional > 0 ? parsedNotional / Math.max(parsedStrike, 0.0001) : 0;
   const estimatedPremium = contractCount * indicativePrice;
   const premiumPct = parsedNotional > 0 ? (estimatedPremium / parsedNotional) * 100 : 0;
-  const pairScenario = selectedPair === "USD/NGN"
+  const pairScenario = selectedPair === "USDC/NGN"
     ? { up: 2600, flat: 1500 }
     : { up: 160, flat: 130 };
 
@@ -209,22 +209,22 @@ export function ForwardInterface() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-6">
-      <div className="relative w-full max-w-[980px]">
-        <div className="absolute -top-14 left-2 flex items-center gap-4">
-          <Image src="/numo-logo.png" alt="Numo" width={156} height={44} className="h-11 w-auto" />
-          <div className="h-8 w-px bg-gray-300" />
-          <h1 className="text-3xl font-semibold text-slate-800">FX Option</h1>
+      <div className="relative w-full max-w-[700px]">
+        <div className="fixed left-36 top-16 z-20 flex items-center gap-6">
+          <Image src="/numo-logo.png" alt="Numo" width={228} height={66} className="h-16 w-auto" />
+          <div className="h-12 w-px bg-gray-300" />
+          <h1 className="text-4xl font-semibold text-slate-800">FX Option</h1>
         </div>
 
         <div className="rounded-[30px] bg-gray-100 p-12 shadow-[0_12px_30px_rgba(15,23,42,0.12)] md:p-14">
         <div className="space-y-4">
-          <div className="relative" ref={currencyRef}>
+          <div className="relative" ref={pairRef}>
             <button
-              onClick={() => setShowCurrencyMenu((prev) => !prev)}
+              onClick={() => setShowPairMenu((prev) => !prev)}
               className="flex h-14 w-full items-center justify-between rounded-2xl border border-gray-200 bg-white/40 px-4 text-left transition hover:bg-white/60"
               aria-haspopup="menu"
-              aria-expanded={showCurrencyMenu}
-              aria-label="Open pair menu"
+              aria-expanded={showPairMenu}
+              aria-label="Select pair"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
@@ -240,14 +240,13 @@ export function ForwardInterface() {
                   {selectedPair}
                 </p>
               </div>
-              {showCurrencyMenu ? (
+              {showPairMenu ? (
                 <ChevronUp className="h-5 w-5 text-gray-500" />
               ) : (
                 <ChevronDown className="h-5 w-5 text-gray-500" />
               )}
             </button>
-
-            {showCurrencyMenu && (
+            {showPairMenu && (
               <div className="absolute left-0 top-full z-50 mt-3 w-full rounded-[28px] border border-gray-200 bg-gray-100 p-4 shadow-xl">
                 <p className="mb-3 px-2 text-sm font-semibold tracking-wide text-slate-500">
                   SELECT PAIR
@@ -260,7 +259,7 @@ export function ForwardInterface() {
                         key={pair}
                         onClick={() => {
                           setSelectedPair(pair);
-                          setShowCurrencyMenu(false);
+                          setShowPairMenu(false);
                         }}
                         className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
                           isSelected ? "bg-stone-200" : "bg-white"
@@ -271,14 +270,14 @@ export function ForwardInterface() {
                             <Image
                               src={pairIcon[pair]}
                               alt={pair}
-                              width={28}
-                              height={28}
-                              className="h-7 w-7 rounded-full"
+                              width={24}
+                              height={24}
+                              className="h-6 w-6 rounded-full"
                             />
                           </div>
                           <span className="text-2xl font-semibold text-slate-800">{pair}</span>
                         </div>
-                        {isSelected ? <Check className="h-6 w-6 text-black" /> : null}
+                        {isSelected ? <Check className="h-5 w-5 text-black" /> : null}
                       </button>
                     );
                   })}
@@ -341,7 +340,7 @@ export function ForwardInterface() {
                   className="w-full min-w-0 bg-transparent text-left outline-none"
                 />
                 <span className="whitespace-nowrap text-sm font-semibold text-slate-600">
-                  {quoteCurrency} per USD
+                  {quoteCurrency} per USDC
                 </span>
               </div>
             </div>
@@ -350,7 +349,7 @@ export function ForwardInterface() {
 
         <div className="mt-3 space-y-3">
           <div className="text-[22px] text-slate-500">
-            <span>Notional (USD)</span>
+            <span>Notional (USDC)</span>
           </div>
 
           <div className="rounded-2xl border border-gray-300 bg-white/60 px-4 py-3">
