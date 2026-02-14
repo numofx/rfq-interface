@@ -1,11 +1,8 @@
 "use client";
 
-import { Calendar, Settings, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useForwardRates } from "@/lib/hooks/useFxRates";
-import { useWalletInfo } from "@/lib/hooks/useWallet";
-import Image from "next/image";
 
 interface CalendarPickerProps {
   selectedDate: string;
@@ -13,19 +10,32 @@ interface CalendarPickerProps {
   onClose: () => void;
 }
 
-const CalendarPicker = ({ selectedDate, onDateSelect, onClose }: CalendarPickerProps) => {
+const CalendarPicker = ({
+  selectedDate,
+  onDateSelect,
+  onClose,
+}: CalendarPickerProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'];
+  const daysInMonth = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 
-  const daysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const firstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
+  const firstDayOfMonth = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
   const generateCalendarDays = () => {
     const days = [];
@@ -34,36 +44,42 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }: CalendarPickerP
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Add empty cells for days before the first day of month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="p-1.5"></div>);
+      days.push(<div key={`empty-${i}`} className="p-1.5" />);
     }
 
-    // Add day cells
     for (let day = 1; day <= totalDays; day++) {
-      const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      const date = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        day
+      );
       date.setHours(0, 0, 0, 0);
+
       const isPast = date < today;
-      const isSelected = date.toDateString() === new Date(selectedDate).toDateString();
-      const isToday = date.toDateString() === today.toDateString();
+      const isSelected =
+        date.toDateString() === new Date(selectedDate).toDateString();
 
       days.push(
         <button
           key={day}
           onClick={() => {
             if (!isPast) {
-              const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-              onDateSelect(newDate.toISOString().split('T')[0]);
+              const newDate = new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth(),
+                day
+              );
+              onDateSelect(newDate.toISOString().split("T")[0]);
               onClose();
             }
           }}
           disabled={isPast}
-          className={`
-            p-1.5 rounded-lg text-center text-sm font-medium transition
-            ${isPast ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-blue-50 cursor-pointer'}
-            ${isSelected ? 'bg-blue-600 text-white hover:bg-blue-700' : ''}
-            ${isToday && !isSelected ? 'border-2 border-blue-600 text-blue-600' : ''}
-          `}
+          className={`rounded-lg p-1.5 text-center text-sm font-medium transition ${
+            isPast
+              ? "cursor-not-allowed text-gray-300"
+              : "cursor-pointer hover:bg-slate-100"
+          } ${isSelected ? "bg-slate-900 text-white hover:bg-slate-900" : ""}`}
         >
           {day}
         </button>
@@ -74,187 +90,158 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }: CalendarPickerP
   };
 
   const changeMonth = (increment: number) => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + increment, 1));
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + increment, 1)
+    );
   };
 
   return (
-    <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 z-50">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="absolute bottom-full left-0 right-0 z-40 mb-2 rounded-xl border border-gray-200 bg-white p-3 shadow-2xl">
+      <div className="mb-2 flex items-center justify-between">
         <button
           onClick={() => changeMonth(-1)}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+          className="rounded-lg p-1.5 text-lg hover:bg-gray-100"
+          aria-label="Previous month"
         >
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
+          ‹
         </button>
-        <div className="font-semibold text-sm text-gray-900">
+        <div className="text-sm font-semibold text-gray-900">
           {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </div>
         <button
           onClick={() => changeMonth(1)}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+          className="rounded-lg p-1.5 text-lg hover:bg-gray-100"
+          aria-label="Next month"
         >
-          <ChevronRight className="w-4 h-4 text-gray-600" />
+          ›
         </button>
       </div>
 
-      {/* Day Labels */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
-        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-          <div key={day} className="text-center text-xs font-semibold text-gray-500 p-1">
+      <div className="mb-1 grid grid-cols-7 gap-1">
+        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+          <div key={day} className="p-1 text-center text-xs font-semibold text-gray-500">
             {day}
           </div>
         ))}
       </div>
 
-      {/* Calendar Days */}
-      <div className="grid grid-cols-7 gap-1">
-        {generateCalendarDays()}
-      </div>
-
-      <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 text-center">
-        Past dates are disabled
-      </div>
+      <div className="grid grid-cols-7 gap-1">{generateCalendarDays()}</div>
     </div>
   );
 };
 
+type OptionType = "call" | "put";
+
 export function ForwardInterface() {
-  const [usdAmount, setUsdAmount] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
+  const [optionType, setOptionType] = useState<OptionType>("call");
+  const [usdAmount, setUsdAmount] = useState("0");
+  const [strikePrice, setStrikePrice] = useState("2,200.00");
+  const [expiryDate, setExpiryDate] = useState(
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  );
   const [showCalendar, setShowCalendar] = useState(false);
+  const [secondsToRefresh, setSecondsToRefresh] = useState(9);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Use wagmi hooks
-  const { isConnected } = useWalletInfo();
+  const { data: forwardRateData, isLoading } = useForwardRates("3M");
 
-  // Default to 3M tenor as that's the target
-  const { data: forwardRateData, isLoading, error } = useForwardRates("3M");
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsToRefresh((prev) => (prev <= 1 ? 9 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  // Fallback to mock data if API is not available
-  const forwardRate = forwardRateData?.rate?.toFixed(4) || "130.9700";
-  const spotRate = forwardRateData?.spot?.toFixed(4) || "129.1500";
-  const forwardPoints = forwardRateData?.forwardPoints?.toFixed(2) || "1.82";
-
-  // Check if form is complete to show forward rate section
-  const isFormComplete = usdAmount && parseFloat(usdAmount.replace(/,/g, '')) > 0 && expiryDate;
-
-  // Close calendar when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
         setShowCalendar(false);
       }
     };
-
     if (showCalendar) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showCalendar]);
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
-  };
+  const parsedAmount = Number(usdAmount.replace(/,/g, "")) || 0;
+  const indicativePrice = forwardRateData?.forwardPoints || 13.33;
+  const ivValue = 69.03;
+  const contractCount = parsedAmount > 0 ? parsedAmount / Math.max(indicativePrice, 0.0001) : 0;
 
-  const calculateKES = () => {
-    const amount = parseFloat(usdAmount.replace(/,/g, '')) || 0;
-    return Math.round(amount * parseFloat(forwardRate));
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  const getTimeUntil = (dateString: string) => {
-    const target = new Date(dateString);
-    const now = new Date();
-
-    // Set time to start of day for both dates
-    target.setHours(0, 0, 0, 0);
-    now.setHours(0, 0, 0, 0);
-
-    // Calculate total days difference
-    const diffTime = target.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
-  };
+  const displayDate = new Date(expiryDate).toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit",
+  });
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 pb-20 bg-gray-50">
-      <style>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-            max-height: 0;
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-            max-height: 500px;
-          }
-        }
-        .animate-slideDown {
-          animation: slideDown 0.5s ease-out forwards;
-        }
-      `}</style>
-      <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">LOCK RATE</h1>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition">
-            <Settings className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-
-        {/* USD Amount Input */}
-        <div className="mb-6">
-          <label className="text-lg font-semibold text-gray-700 mb-2 block">
-            How much do you need?
-          </label>
-          <div className="relative bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 shadow-lg hover:shadow-xl focus-within:border-gray-400 focus-within:bg-white transition-all">
-            <input
-              type="text"
-              value={usdAmount ? formatNumber(parseFloat(usdAmount.replace(/,/g, ''))) : ''}
-              onChange={(e) => setUsdAmount(e.target.value.replace(/,/g, ''))}
-              className="w-full text-4xl font-bold text-gray-900 focus:outline-none bg-transparent pr-24"
-              placeholder="0"
-            />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <Image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Crect fill='%23B22234' width='60' height='30'/%3E%3Cpath d='M0 3.5h60M0 7h60M0 10.5h60M0 14h60M0 17.5h60M0 21h60M0 24.5h60M0 28h60' stroke='%23fff' stroke-width='2'/%3E%3Crect fill='%233C3B6E' width='24' height='15'/%3E%3C/svg%3E" alt="US Flag" width={32} height={20} className="w-8 h-5 rounded" unoptimized />
-              <span className="text-lg font-semibold text-gray-700">USD</span>
+    <div className="flex flex-1 items-center justify-center bg-gray-50 px-4 py-8">
+      <div className="w-full max-w-[640px] rounded-[30px] bg-gray-100 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.12)] md:p-8">
+        <div className="rounded-2xl border border-gray-200 bg-white/40 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-lg text-gray-700">
+                ◆
+              </div>
+              <div>
+                <p className="text-4xl font-semibold leading-none text-slate-800">ETH</p>
+                <p className="mt-1 text-3xl leading-none text-slate-500">
+                  $1,957.20 <span className="ml-2 text-pink-500">-$0.86%</span>
+                </p>
+              </div>
             </div>
+            <ChevronDown className="h-5 w-5 text-gray-500" />
           </div>
-          <div className="text-sm text-gray-600 mt-1">For payment to your vendor</div>
         </div>
 
-        {/* Expiry Date Selector */}
-        <div className="mb-6 relative" ref={calendarRef}>
-          <label className="text-lg font-semibold text-gray-700 mb-2 block">Lock rate until</label>
+        <div className="mt-4 grid grid-cols-2 rounded-2xl border border-gray-200 bg-gray-100 p-1">
           <button
-            onClick={() => setShowCalendar(!showCalendar)}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl focus:outline-none focus:border-gray-400 focus:bg-white cursor-pointer flex items-center justify-between transition-all"
+            onClick={() => setOptionType("call")}
+            className={`rounded-xl py-3 text-2xl leading-none transition ${
+              optionType === "call"
+                ? "border border-slate-900 bg-white text-slate-900"
+                : "text-gray-500"
+            }`}
           >
-            <span className={expiryDate ? 'text-gray-900' : 'text-gray-400'}>
-              {expiryDate ? formatDate(expiryDate) : 'Select expiry date'}
-            </span>
-            <Calendar className="w-5 h-5 text-gray-400" />
+            Call
           </button>
-          {expiryDate && (
-            <div className="text-xs text-gray-500 mt-2">
-              Rate will expire in {getTimeUntil(expiryDate)}
-            </div>
-          )}
+          <button
+            onClick={() => setOptionType("put")}
+            className={`rounded-xl py-3 text-2xl leading-none transition ${
+              optionType === "put"
+                ? "border border-slate-900 bg-white text-slate-900"
+                : "text-gray-500"
+            }`}
+          >
+            Put
+          </button>
+        </div>
 
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-gray-200 bg-white/50 px-4 py-3 text-[22px] leading-none text-slate-600">
+          <button
+            onClick={() => setShowCalendar((prev) => !prev)}
+            className="flex items-center justify-center gap-2"
+          >
+            {displayDate}
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          </button>
+          <div className="h-7 w-px bg-gray-300" />
+          <div className="flex items-center justify-center gap-2">
+            <span>$</span>
+            <input
+              value={strikePrice}
+              onChange={(e) => setStrikePrice(e.target.value)}
+              className="w-[170px] bg-transparent text-center outline-none"
+            />
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          </div>
+        </div>
+
+        <div ref={calendarRef} className="relative">
           {showCalendar && (
             <CalendarPicker
-              selectedDate={expiryDate || new Date().toISOString().split('T')[0]}
+              selectedDate={expiryDate}
               onDateSelect={(date) => {
                 setExpiryDate(date);
                 setShowCalendar(false);
@@ -264,83 +251,54 @@ export function ForwardInterface() {
           )}
         </div>
 
-        {/* Arrow */}
-        <div className="flex justify-center mb-6">
-          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
+        <div className="mt-5 flex items-center justify-between text-[22px] text-slate-500">
+          <span>Amount (USDC)</span>
+          <span>USDC Balance: 0.00</span>
+        </div>
+
+        <div className="mt-2 rounded-2xl border border-gray-300 bg-white/60 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <input
+              value={usdAmount}
+              onChange={(e) => setUsdAmount(e.target.value)}
+              className="w-full bg-transparent text-[52px] leading-none text-slate-800 outline-none"
+              placeholder="0"
+            />
+            <button className="rounded-xl border border-gray-200 bg-gray-100 px-4 py-2 text-[20px] text-slate-600">
+              Max
+            </button>
           </div>
         </div>
 
-        {/* KES Amount Output */}
-        <div className="mb-6">
-          <div className="text-lg font-semibold text-gray-700 mb-2">You&apos;ll pay</div>
-          <div className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-4xl font-bold text-gray-900 mb-1">
-                  {usdAmount ? formatNumber(calculateKES()) : '0'}
-                </div>
-                <div className="text-sm text-gray-600">
-                  ≈ ${formatNumber(parseFloat(usdAmount.replace(/,/g, '')) || 0)}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 600'%3E%3Cpath fill='%23000' d='M0 0h900v600H0z'/%3E%3Cpath fill='%23FFF' d='M0 180h900v60H0zm0 180h900v60H0z'/%3E%3Cpath fill='%23006600' d='M0 240h900v180H0z'/%3E%3Cpath fill='%23BA0C2F' d='M0 60h900v120H0zm0 360h900v120H0z'/%3E%3Cg fill='%23FFF' stroke='%23000' stroke-width='15'%3E%3Cellipse cx='450' cy='300' rx='180' ry='210'/%3E%3Cpath d='M450 180v240M360 220l180 160M540 220L360 380'/%3E%3C/g%3E%3C/svg%3E" alt="Kenyan Flag" width={32} height={24} className="w-8 h-6 rounded" unoptimized />
-                <span className="text-lg font-semibold text-gray-700">KES</span>
-              </div>
-            </div>
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+          <p className="text-[22px] leading-none text-slate-500">Indicative Price Per Option</p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-[52px] font-semibold leading-none text-emerald-600">
+              ${indicativePrice.toFixed(2)}{" "}
+              <span className="text-[42px] text-emerald-700">IV {ivValue.toFixed(2)}%</span>
+            </p>
+            <button className="rounded-xl bg-emerald-100 p-3 text-emerald-700">
+              <RefreshCw className="h-6 w-6" />
+            </button>
           </div>
-        </div>
-
-        {/* Forward Rate and Lock Button - Appears when form is complete */}
-        {isFormComplete && (
-          <div className="animate-slideDown">
-            {/* Dropdown Section */}
-              <div className="mt-6 pt-6 bg-linear-to-b from-gray-50 to-white rounded-xl p-6 -mx-2">
-              {/* Implied Forward Rate */}
-              <div className="mb-6 text-center">
-                <div className="text-sm text-gray-600 mb-1">Forward Rate</div>
-                <div className="text-4xl font-bold text-gray-900 mb-1">
-                  {forwardRate}
-                </div>
-                <div className="text-sm text-gray-600">KES per USD</div>
-              </div>
-
-              {/* Settlement Info */}
-              <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-gray-200">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">Receive in {getTimeUntil(expiryDate)}</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    ${formatNumber(parseFloat(usdAmount.replace(/,/g, '')))}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Settlement date</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatDate(expiryDate)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Lock Button */}
-              <button
-                className="w-full bg-gray-900 text-white py-4 rounded-full font-semibold text-lg hover:bg-gray-800 transition"
-                disabled={isLoading}
-              >
-                {isLoading ? "Loading rate..." : "Lock This Rate"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Footer Text */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-600">
-            Know exactly how much KES you&apos;ll need - No surprises
+          <p className="mt-2 text-[20px] leading-none text-slate-500">
+            Auto refresh in {secondsToRefresh} seconds
           </p>
         </div>
+
+        <div className="mt-5 flex items-center justify-between text-[22px] leading-none">
+          <span className="text-slate-600">Number of Contracts</span>
+          <span className="font-semibold text-slate-800">
+            {contractCount > 0 ? contractCount.toFixed(4) : "---"}
+          </span>
+        </div>
+
+        <button
+          disabled={isLoading}
+          className="mt-5 w-full rounded-2xl bg-slate-900 py-4 text-[28px] leading-none text-white transition hover:bg-slate-800 disabled:opacity-70"
+        >
+          {isLoading ? "Loading..." : "Request Quote"}
+        </button>
       </div>
     </div>
   );

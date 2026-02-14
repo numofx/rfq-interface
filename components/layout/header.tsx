@@ -29,6 +29,8 @@ export function Header({
   showGoToAppButton = false,
   logoLink = "/",
 }: HeaderProps) {
+  const isPrivyConfigured = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+
   return (
     <header className="max-w-7xl mx-auto px-6 py-4 lg:px-12 w-full">
       <div className="flex items-center justify-between">
@@ -38,7 +40,7 @@ export function Header({
           </Link>
         </div>
         <div className="flex-1 flex justify-end">
-          {showWalletButton && <WalletButton />}
+          {showWalletButton && isPrivyConfigured && <WalletButton />}
           {showGoToAppButton && (
             <Button
               variant="link"
