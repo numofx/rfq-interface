@@ -25,8 +25,12 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#f3f3f4] text-[#15151b]">
       <header className="relative flex items-center px-7 pt-6">
-        <div className="relative h-[44px] w-[165px]">
-          <Image src="/numo.png" alt="Numo" fill className="object-contain object-left" priority />
+        <div className="flex items-center gap-2">
+          <div className="relative -mr-6 h-[31px] w-[114px]">
+            <Image src="/numo.png" alt="Numo" fill className="object-contain object-left" priority />
+          </div>
+          <div className="ml-0.5 mr-1 h-6 w-px bg-[#d6d7dd]" />
+          <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">FX Options</p>
         </div>
 
         {view !== "team" ? (
@@ -91,7 +95,7 @@ export default function HomePage() {
                         ? businessType === "carry-trader"
                           ? "Carry Trader"
                           : businessType.charAt(0).toUpperCase() + businessType.slice(1)
-                        : "What are you building?"}
+                        : "What is your business?"}
                     </span>
                     <svg
                       viewBox="0 0 24 24"
