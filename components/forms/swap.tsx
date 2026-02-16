@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useForwardRates } from "@/lib/hooks/useFxRates";
+import { useRouter } from "next/navigation";
 
 interface CalendarPickerProps {
   selectedDate: string;
@@ -132,10 +133,12 @@ const CalendarPicker = ({
 };
 
 type OptionType = "call" | "put";
+type Pair = "USDC/cNGN" | "USDC/KES";
 
 export function ForwardInterface() {
+  const router = useRouter();
   const [optionType, setOptionType] = useState<OptionType>("call");
-  const [selectedPair, setSelectedPair] = useState<"USDC/NGN" | "USDC/KES">("USDC/NGN");
+  const [selectedPair, setSelectedPair] = useState<Pair>("USDC/cNGN");
   const [showPairMenu, setShowPairMenu] = useState(false);
   const [usdAmount, setUsdAmount] = useState("");
   const [strikePrice, setStrikePrice] = useState("2,200.00");
@@ -144,18 +147,53 @@ export function ForwardInterface() {
   );
   const [showCalendar, setShowCalendar] = useState(false);
   const [secondsToRefresh, setSecondsToRefresh] = useState(9);
-  const [hasQuoted, setHasQuoted] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const pairRef = useRef<HTMLDivElement>(null);
 
   const { data: forwardRateData, isLoading } = useForwardRates("3M");
 
-  const pairOptions = ["USDC/NGN", "USDC/KES"] as const;
-  const pairIcon: Record<"USDC/NGN" | "USDC/KES", string> = {
-    "USDC/NGN": "/tokens/ng.svg",
-    "USDC/KES": "/tokens/ke.svg",
+  const pairOptions = ["USDC/cNGN", "USDC/KES"] as const;
+  const tokenIcon: Record<"USDC" | "cNGN" | "KES", string> = {
+    USDC: "/tokens/usdc.svg",
+    cNGN: "/tokens/cngn.svg",
+    KES: "/tokens/ke.svg",
   };
+  const formatPairLabel = (pair: string) => pair.replace("/", " / ");
+
+  const PairIconSplit = ({
+    base,
+    quote,
+  }: {
+    base: keyof typeof tokenIcon;
+    quote: keyof typeof tokenIcon;
+  }) => (
+    <div className="relative h-10 w-10 overflow-hidden rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.14)]">
+      <div className="absolute inset-y-0 left-0 w-1/2 overflow-hidden">
+        <div className="relative h-full w-full">
+          <Image
+            src={tokenIcon[base]}
+            alt={`${base} logo`}
+            fill
+            sizes="20px"
+            className="object-cover"
+          />
+        </div>
+      </div>
+      <div className="absolute inset-y-0 right-0 w-1/2 overflow-hidden">
+        <div className="relative h-full w-full">
+          <Image
+            src={tokenIcon[quote]}
+            alt={`${quote} logo`}
+            fill
+            sizes="20px"
+            className="object-cover"
+          />
+        </div>
+      </div>
+      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-black/10" />
+    </div>
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -186,7 +224,7 @@ export function ForwardInterface() {
   const contractCount = parsedNotional > 0 ? parsedNotional / Math.max(parsedStrike, 0.0001) : 0;
   const estimatedPremium = contractCount * indicativePrice;
   const premiumPct = parsedNotional > 0 ? (estimatedPremium / parsedNotional) * 100 : 0;
-  const pairScenario = selectedPair === "USDC/NGN"
+  const pairScenario = selectedPair === "USDC/cNGN"
     ? { up: 2600, flat: 1500 }
     : { up: 160, flat: 130 };
 
@@ -205,7 +243,7 @@ export function ForwardInterface() {
     month: "short",
     year: "2-digit",
   });
-  const quoteCurrency = selectedPair.split("/")[1];
+  const [baseCurrency, quoteCurrency] = selectedPair.split("/") as [Pair extends `${infer A}/${infer B}` ? A : never, Pair extends `${infer A}/${infer B}` ? B : never];
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-6">
@@ -227,17 +265,12 @@ export function ForwardInterface() {
               aria-label="Select pair"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
-                  <Image
-                    src={pairIcon[selectedPair]}
-                    alt={selectedPair}
-                    width={24}
-                    height={24}
-                    className="h-6 w-6 rounded-full"
-                  />
-                </div>
+                <PairIconSplit
+                  base={baseCurrency as keyof typeof tokenIcon}
+                  quote={quoteCurrency as keyof typeof tokenIcon}
+                />
                 <p className="text-3xl font-semibold leading-none text-slate-800">
-                  {selectedPair}
+                  {formatPairLabel(selectedPair)}
                 </p>
               </div>
               {showPairMenu ? (
@@ -254,6 +287,7 @@ export function ForwardInterface() {
                 <div className="space-y-2">
                   {pairOptions.map((pair) => {
                     const isSelected = selectedPair === pair;
+                    const [base, quote] = pair.split("/") as [string, string];
                     return (
                       <button
                         key={pair}
@@ -266,16 +300,13 @@ export function ForwardInterface() {
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
-                            <Image
-                              src={pairIcon[pair]}
-                              alt={pair}
-                              width={24}
-                              height={24}
-                              className="h-6 w-6 rounded-full"
-                            />
-                          </div>
-                          <span className="text-2xl font-semibold text-slate-800">{pair}</span>
+                          <PairIconSplit
+                            base={base as keyof typeof tokenIcon}
+                            quote={quote as keyof typeof tokenIcon}
+                          />
+                          <span className="text-2xl font-semibold text-slate-800">
+                            {formatPairLabel(pair)}
+                          </span>
                         </div>
                         {isSelected ? <Check className="h-5 w-5 text-black" /> : null}
                       </button>
@@ -286,23 +317,33 @@ export function ForwardInterface() {
             )}
           </div>
 
-          <div className="grid h-14 grid-cols-2 rounded-2xl border border-gray-200 bg-gray-100 p-1">
+          <div
+            className="flex h-12 items-center gap-1 rounded-full border border-black/10 bg-white/60 p-1 shadow-[0_1px_0_rgba(255,255,255,0.9),0_10px_25px_rgba(15,23,42,0.08)] backdrop-blur-sm md:h-14"
+            role="tablist"
+            aria-label="Option type"
+          >
             <button
+              type="button"
               onClick={() => setOptionType("call")}
-              className={`rounded-xl text-2xl leading-none transition ${
+              role="tab"
+              aria-selected={optionType === "call"}
+              className={`flex h-full flex-1 items-center justify-center rounded-full px-4 text-lg font-semibold tracking-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent md:text-xl ${
                 optionType === "call"
-                  ? "border border-slate-900 bg-white text-slate-900"
-                  : "text-gray-500"
+                  ? "bg-neutral-900 text-white shadow-[0_6px_18px_rgba(15,23,42,0.18)]"
+                  : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
               Call
             </button>
             <button
+              type="button"
               onClick={() => setOptionType("put")}
-              className={`rounded-xl text-2xl leading-none transition ${
+              role="tab"
+              aria-selected={optionType === "put"}
+              className={`flex h-full flex-1 items-center justify-center rounded-full px-4 text-lg font-semibold tracking-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent md:text-xl ${
                 optionType === "put"
-                  ? "border border-slate-900 bg-white text-slate-900"
-                  : "text-gray-500"
+                  ? "bg-neutral-900 text-white shadow-[0_6px_18px_rgba(15,23,42,0.18)]"
+                  : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
               Put
@@ -359,7 +400,6 @@ export function ForwardInterface() {
                 value={usdAmount}
                 onChange={(e) => {
                   setUsdAmount(e.target.value);
-                  setHasQuoted(false);
                 }}
                 className="w-full bg-transparent text-left text-[52px] leading-none text-slate-800 outline-none"
                 placeholder="10,000"
@@ -409,55 +449,22 @@ export function ForwardInterface() {
 
           <button
             disabled={isLoading}
-            onClick={() => setHasQuoted(true)}
-            className="w-full rounded-2xl bg-slate-900 py-4 text-[30px] font-semibold leading-none text-white shadow-[0_8px_18px_rgba(15,23,42,0.22)] transition hover:bg-slate-800 disabled:opacity-70"
+            onClick={() => {
+              const params = new URLSearchParams({
+                pair: selectedPair,
+                type: optionType,
+                notional: String(parsedNotional),
+                strike: String(parsedStrike),
+                expiry: expiryDate,
+                indicative: String(indicativePrice),
+              });
+              router.push(`/app/review?${params.toString()}`);
+            }}
+            className="w-full rounded-2xl bg-slate-200 py-4 text-[24px] font-semibold leading-none text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.12)] transition hover:bg-slate-300 disabled:opacity-70"
           >
-            {isLoading ? "Loading..." : "Request Quote"}
+            {isLoading ? "Loading..." : "Next Step"}
           </button>
-          <p className="text-center text-sm text-slate-500">
-            Dealers respond after you submit a quote request.
-          </p>
         </div>
-
-        {hasQuoted && (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white/50 px-4 py-3">
-            <div className="text-sm text-slate-500">Quote Summary</div>
-            <div className="mt-2 space-y-2 text-base text-slate-700">
-              <div>
-                <div>Notional</div>
-                <div className="font-semibold text-slate-800">
-                  ${parsedNotional.toLocaleString("en-US")}
-                </div>
-              </div>
-              <div>
-                <div>Premium</div>
-                <div className="font-semibold text-slate-800">
-                  ${estimatedPremium.toFixed(2)} ({premiumPct.toFixed(3)}%)
-                </div>
-              </div>
-              <div>
-                <div>Max payout</div>
-                <div className="font-semibold text-slate-800">
-                  {optionType === "call"
-                    ? `Unlimited above ${Number(strikePrice.replace(/[^0-9.]/g, "") || 0).toLocaleString("en-US")}`
-                    : `Unlimited below ${Number(strikePrice.replace(/[^0-9.]/g, "") || 0).toLocaleString("en-US")}`}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-lg border border-slate-200 bg-white/60 p-3">
-              <div className="text-sm font-medium text-slate-500">Scenario Preview</div>
-              <div className="mt-2 text-sm text-slate-700">
-                If {selectedPair} hits {pairScenario.up.toLocaleString("en-US")} {"->"} payout ~= $
-                {payoutAtUp.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-              </div>
-              <div className="mt-1 text-sm text-slate-700">
-                If {selectedPair} stays at {pairScenario.flat.toLocaleString("en-US")} {"->"} payout = $
-                {payoutAtFlat.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-              </div>
-            </div>
-          </div>
-        )}
         </div>
       </div>
     </div>
