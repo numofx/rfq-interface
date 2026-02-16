@@ -24,7 +24,7 @@ export function PrivyWagmiProvider({ children }: { children: React.ReactNode }) 
         appearance: {
           theme: "light",
           accentColor: "#00D4AA",
-          logo: "/numo-logo.png",
+          logo: "/numo.png",
         },
         // Embedded wallets configuration
         embeddedWallets: {

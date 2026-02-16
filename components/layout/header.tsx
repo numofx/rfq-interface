@@ -36,7 +36,7 @@ export function Header({
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <Link href={logoLink}>
-            <Image src="/numo-logo.png" alt="Numo" width={180} height={48} className="h-12" />
+            <Image src="/numo.png" alt="Numo" width={180} height={48} className="h-12" />
           </Link>
         </div>
         <div className="flex-1 flex justify-end">
