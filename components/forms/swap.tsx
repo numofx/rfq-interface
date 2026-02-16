@@ -272,37 +272,37 @@ export function ForwardInterface() {
   const [baseCurrency, quoteCurrency] = selectedPair.split("/") as [Pair extends `${infer A}/${infer B}` ? A : never, Pair extends `${infer A}/${infer B}` ? B : never];
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--fx-bg)] px-4 py-4 [font-family:Inter,'SF_Pro_Text',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif]">
       <div className="relative w-full max-w-[470px]">
         <div className="fixed left-24 top-12 z-20 flex items-center gap-2">
           <Image src="/numo.png" alt="Numo" width={112} height={39} className="h-8 w-auto" />
-          <div className="h-5 w-px bg-gray-300" />
-          <h1 className="text-[18px] font-semibold text-slate-800">FX Options</h1>
+          <div className="h-5 w-px bg-[var(--fx-border)]" />
+          <h1 className="text-[18px] font-semibold text-[var(--fx-heading)]">FX Options</h1>
         </div>
 
-        <div className="rounded-[18px] bg-gray-100 p-5 shadow-[0_8px_20px_rgba(15,23,42,0.1)]">
-        <div className="space-y-2.5">
+        <div className="rounded-[26px] border border-[rgba(226,232,240,0.92)] bg-[rgba(255,255,255,0.72)] p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)] backdrop-blur-[6px]">
+        <div className="space-y-2">
           <div className="relative" ref={pairRef}>
             <button
               onClick={() => setShowPairMenu((prev) => !prev)}
-              className="flex h-14 w-full items-center justify-between rounded-2xl border border-[#D0D0D5] bg-[#F2F2F3] px-4 text-left shadow-[0_2px_6px_rgba(15,23,42,0.08)] transition"
+              className="flex h-11 w-full items-center justify-between rounded-xl border border-[var(--fx-border)] bg-[#F8FAFC] px-3 text-left shadow-[0_2px_6px_rgba(15,23,42,0.04)] transition"
               aria-haspopup="menu"
               aria-expanded={showPairMenu}
               aria-label="Select pair"
             >
               {renderPairLabel(selectedPair)}
               {showPairMenu ? (
-                <ChevronUp className="h-5 w-5 text-gray-500" />
+                <ChevronUp className="h-4 w-4 text-[var(--fx-secondary)]" />
               ) : (
-                <ChevronDown className="h-5 w-5 text-gray-500" />
+                <ChevronDown className="h-4 w-4 text-[var(--fx-secondary)]" />
               )}
             </button>
             {showPairMenu && (
-              <div className="absolute left-0 top-full z-50 mt-3 w-full rounded-[28px] border border-[#D7D7DB] bg-[#EFEFF0] p-4 shadow-[0_16px_28px_rgba(15,23,42,0.12)]">
-                <p className="mb-2 px-2 text-[10px] font-semibold tracking-wide text-slate-500">
+              <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-[20px] border border-[var(--fx-border)] bg-[var(--fx-card)] p-3 shadow-[0_8px_24px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)]">
+                <p className="mb-2 px-1 text-[10px] font-semibold tracking-wide text-[var(--fx-secondary)]">
                   SELECT PAIR
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {pairOptions.map((pair) => {
                     const isSelected = selectedPair === pair;
                     return (
@@ -312,8 +312,8 @@ export function ForwardInterface() {
                           setSelectedPair(pair);
                           setShowPairMenu(false);
                         }}
-                        className={`flex w-full items-center justify-between rounded-3xl px-4 py-4 text-left transition ${
-                          isSelected ? "bg-[#DEDDDA]" : "bg-[#F5F5F5]"
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition ${
+                          isSelected ? "bg-[#F1F5F9]" : "bg-[var(--fx-card)]"
                         }`}
                       >
                         {renderPairLabel(pair, true)}
@@ -327,7 +327,7 @@ export function ForwardInterface() {
           </div>
 
           <div
-            className="flex h-9 items-center gap-1 rounded-full border border-black/10 bg-white/60 p-1 shadow-[0_1px_0_rgba(255,255,255,0.9),0_6px_14px_rgba(15,23,42,0.08)] backdrop-blur-sm"
+            className="grid h-11 grid-cols-2 gap-2"
             role="tablist"
             aria-label="Option type"
           >
@@ -336,10 +336,10 @@ export function ForwardInterface() {
               onClick={() => setOptionType("call")}
               role="tab"
               aria-selected={optionType === "call"}
-              className={`flex h-full flex-1 items-center justify-center rounded-full px-3 text-xs font-semibold tracking-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+              className={`flex h-full items-center justify-center rounded-xl border px-4 text-[14px] font-semibold tracking-tight transition focus-visible:outline-none ${
                 optionType === "call"
-                  ? "bg-neutral-900 text-white shadow-[0_6px_18px_rgba(15,23,42,0.18)]"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  ? "border-[#111827] bg-[#111827] text-white shadow-[0_2px_6px_rgba(17,24,39,0.28)]"
+                  : "border-[#D1D5DB] bg-[#F3F4F6] text-[var(--fx-label)] hover:bg-[#E5E7EB]"
               }`}
             >
               Call
@@ -349,10 +349,10 @@ export function ForwardInterface() {
               onClick={() => setOptionType("put")}
               role="tab"
               aria-selected={optionType === "put"}
-              className={`flex h-full flex-1 items-center justify-center rounded-full px-3 text-xs font-semibold tracking-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+              className={`flex h-full items-center justify-center rounded-xl border px-4 text-[14px] font-semibold tracking-tight transition focus-visible:outline-none ${
                 optionType === "put"
-                  ? "bg-neutral-900 text-white shadow-[0_6px_18px_rgba(15,23,42,0.18)]"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  ? "border-[#111827] bg-[#111827] text-white shadow-[0_2px_6px_rgba(17,24,39,0.28)]"
+                  : "border-[#D1D5DB] bg-[#F3F4F6] text-[var(--fx-label)] hover:bg-[#E5E7EB]"
               }`}
             >
               Put
@@ -361,13 +361,13 @@ export function ForwardInterface() {
 
           <div className="grid grid-cols-2 gap-2.5">
             <div ref={calendarRef} className="relative">
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Expiry</label>
+              <label className="mb-1 block text-[13px] font-semibold text-[var(--fx-label)]">Expiry</label>
               <button
                 onClick={() => setShowCalendar((prev) => !prev)}
-                className="flex h-9 w-full items-center justify-between rounded-lg border border-gray-200 bg-white/50 px-3 text-[13px] leading-none text-slate-600"
+                className="flex h-8.5 w-full items-center justify-between rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 text-[14px] leading-none text-[var(--fx-label)]"
               >
                 <span>{displayDate}</span>
-                <ChevronDown className="h-4 w-4 text-gray-500" />
+                <ChevronDown className="h-4 w-4 text-[var(--fx-secondary)]" />
               </button>
               {showCalendar && (
                 <CalendarPicker
@@ -382,14 +382,14 @@ export function ForwardInterface() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Strike</label>
-              <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 bg-white/50 px-3 text-[13px] leading-none text-slate-600">
+              <label className="mb-1 block text-[13px] font-semibold text-[var(--fx-label)]">Strike</label>
+              <div className="flex h-8.5 items-center gap-2 rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 text-[14px] leading-none text-[var(--fx-label)]">
                 <input
                   value={strikePrice}
                   onChange={(e) => setStrikePrice(e.target.value)}
                   className="w-full min-w-0 bg-transparent text-left outline-none"
                 />
-                <span className="whitespace-nowrap text-[9px] font-semibold text-slate-600">
+                <span className="whitespace-nowrap text-[10px] font-semibold text-[var(--fx-label)]">
                   {quoteCurrency} per {baseCurrency}
                 </span>
               </div>
@@ -397,60 +397,60 @@ export function ForwardInterface() {
           </div>
         </div>
 
-        <div className="mt-2 space-y-2">
-          <div className="text-[13px] text-slate-500">
+        <div className="mt-1.5 space-y-1.5">
+          <div className="text-[13px] font-semibold text-[var(--fx-label)]">
             <span>Notional (USDC)</span>
           </div>
 
-          <div className="rounded-lg border border-gray-300 bg-white/60 px-3 py-2">
+          <div className="rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 py-1.5">
             <div className="flex items-center gap-3">
-              <span className="text-[16px] leading-none text-slate-500">$</span>
+              <span className="text-[16px] leading-none text-[var(--fx-secondary)]">$</span>
               <input
                 value={usdAmount}
                 onChange={(e) => {
                   setUsdAmount(e.target.value);
                 }}
-                className="w-full bg-transparent text-left text-[26px] leading-none text-slate-800 outline-none"
+                className="w-full bg-transparent text-left text-[20px] font-medium leading-none text-[var(--fx-heading)] outline-none"
                 placeholder="10,000"
               />
-              <button className="rounded-lg px-2 py-0.5 text-[10px] text-slate-500 transition hover:bg-gray-100">
+              <button className="rounded-lg px-2 py-0.5 text-[11px] text-[var(--fx-secondary)] transition hover:bg-[#F1F5F9]">
                 Max
               </button>
             </div>
           </div>
-          <div className="text-[11px] text-slate-600">
+          <div className="text-[12px] text-[var(--fx-secondary)]">
             Protecting: {(parsedNotional * parsedStrike).toLocaleString("en-US", {
               maximumFractionDigits: 0,
             })}{" "}
             {quoteCurrency} exposure
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5">
-            <p className="text-[11px] text-slate-600">
-              Indicative premium:{" "}
-              <span className="font-semibold text-emerald-700">${indicativePrice.toFixed(2)}</span>
-            </p>
+          <div className="flex items-center justify-between rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+            <div className="border-l-[3px] border-[var(--fx-accent-green)] pl-2">
+              <p className="text-[10px] text-[var(--fx-secondary)]">Indicative premium</p>
+              <p className="text-[17px] font-semibold text-[var(--fx-heading)]">${indicativePrice.toFixed(2)}</p>
+            </div>
             <div className="flex items-center gap-2">
-              <button className="rounded-md bg-emerald-100 p-1 text-emerald-700">
-                <RefreshCw className="h-2.5 w-2.5" />
+              <button className="rounded-md bg-[#F1F5F9] p-1 text-[var(--fx-label)]">
+                <RefreshCw className="h-3 w-3" />
               </button>
-              <span className="text-[9px] text-slate-500">updates in {secondsToRefresh}s</span>
+              <span className="text-[10px] text-[var(--fx-secondary)]">updates in {secondsToRefresh}s</span>
             </div>
           </div>
           <div>
             <button
               onClick={() => setShowAdvanced((prev) => !prev)}
-              className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--fx-label)] underline-offset-2 hover:underline"
             >
               Advanced options
               {showAdvanced ? (
-                <ChevronUp className="h-4 w-4 text-slate-500" />
+                <ChevronUp className="h-4 w-4 text-[var(--fx-secondary)]" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-slate-500" />
+                <ChevronDown className="h-4 w-4 text-[var(--fx-secondary)]" />
               )}
             </button>
             {showAdvanced && (
-              <div className="mt-1 text-[10px] text-slate-500">
+              <div className="mt-1 text-[10px] text-[var(--fx-secondary)]">
                 Implied Volatility (IV): {ivValue.toFixed(2)}%
               </div>
             )}
@@ -469,7 +469,7 @@ export function ForwardInterface() {
               });
               router.push(`/app/review?${params.toString()}`);
             }}
-            className="w-full rounded-lg bg-slate-200 py-2.5 text-[13px] font-semibold leading-none text-slate-600 shadow-[0_6px_14px_rgba(15,23,42,0.12)] transition hover:bg-slate-300 disabled:opacity-70"
+            className="w-full rounded-lg border border-[#0F172A] bg-[#0B1220] py-2.5 text-[14px] font-bold leading-none text-white shadow-[0_8px_16px_rgba(15,23,42,0.28)] transition hover:bg-[#070D18] active:bg-[#070D18] disabled:opacity-70"
           >
             {isLoading ? "Loading..." : "Next Step"}
           </button>

@@ -4,6 +4,16 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --fx-bg: #F7F9FC;
+  --fx-card: #FFFFFF;
+  --fx-heading: #0F172A;
+  --fx-label: #475569;
+  --fx-secondary: #64748B;
+  --fx-border: #E2E8F0;
+  --fx-primary: #111827;
+  --fx-primary-hover: #0B1220;
+  --fx-primary-pressed: #070D18;
+  --fx-accent-green: #16A34A;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
