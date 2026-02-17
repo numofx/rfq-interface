@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Calendar } from "lucide-react";
 import { createPublicClient, http } from "viem";
-import { base } from "viem/chains";
+import { base, celo } from "viem/chains";
 import {
   DropdownSelect,
   FieldLabel,
@@ -40,6 +40,7 @@ const QUOTE_WINDOW_SECONDS = 30;
 const REQUEST_DELAY_MS = 1400;
 const ATM_THRESHOLD = 0.0025;
 const CHAINLINK_NGN_USD_FEED_BASE = "0xdfbb5Cbc88E382de007bfe6CE99C388176ED80aD";
+const CHAINLINK_KES_USD_FEED_CELO = "0x0826492a24b1dBd1d8fcB4701b38C557CE685e9D";
 const DEFAULT_SPOT_BY_PAIR: Partial<Record<Pair, number>> = {
   "USDT/KESm": 130,
 };
@@ -68,6 +69,10 @@ const chainlinkAggregatorV3Abi = [
 const basePublicClient = createPublicClient({
   chain: base,
   transport: http("https://mainnet.base.org"),
+});
+const celoPublicClient = createPublicClient({
+  chain: celo,
+  transport: http("https://forno.celo.org"),
 });
 
 const pairs = [
@@ -156,25 +161,8 @@ function bestPriceFirst(quotes: Quote[]) {
 }
 
 function makeMockQuotes(notional: number): Quote[] {
-  const sizeFactor = Math.max(notional / 10000, 1);
-  const responseCount = Math.floor(Math.random() * 4);
-  const generated = makers.slice(0, responseCount).map((maker, index) => {
-    const base = 1.75 + sizeFactor * 0.08;
-    const drift = (Math.random() - 0.5) * 0.35;
-    const premium = Number((base + drift + index * 0.06).toFixed(2));
-    const fees = Number((premium * 0.02).toFixed(2));
-    const spreadBps = 8 + Math.floor(Math.random() * 9);
-
-    return {
-      id: `${maker}-${Date.now()}-${index}`,
-      maker,
-      premium,
-      fees,
-      spreadBps,
-    };
-  });
-
-  return bestPriceFirst(generated);
+  void notional;
+  return [];
 }
 
 function Spinner() {
@@ -217,11 +205,13 @@ export function ForwardInterface() {
   const [strike, setStrike] = useState("2200.00");
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+  const [isQuotePopupOpen, setIsQuotePopupOpen] = useState(false);
   const [windowRemaining, setWindowRemaining] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => parseIsoDate(expiryDate));
   const [usdcCngnSpot, setUsdcCngnSpot] = useState<number | null>(null);
+  const [usdtKesmSpot, setUsdtKesmSpot] = useState<number | null>(null);
   const calendarRef = useRef<HTMLDivElement | null>(null);
 
   const pairOptions = useMemo(
@@ -262,7 +252,12 @@ export function ForwardInterface() {
   const parsedNotional = Number(notional.replace(/,/g, "")) || 0;
   const parsedStrike = Number(strike.replace(/,/g, "")) || 0;
   const [baseCurrency, quoteCurrency] = pair.split("/") as [string, string];
-  const spot = pair === "USDC/cNGN" ? usdcCngnSpot : DEFAULT_SPOT_BY_PAIR[pair];
+  const spot =
+    pair === "USDC/cNGN"
+      ? usdcCngnSpot
+      : pair === "USDT/KESm"
+        ? usdtKesmSpot ?? DEFAULT_SPOT_BY_PAIR[pair]
+        : DEFAULT_SPOT_BY_PAIR[pair];
   const hasValidSpot = typeof spot === "number" && Number.isFinite(spot) && spot > 0;
   const displayExpiry = parseIsoDate(expiryDate).toLocaleDateString("en-US", {
     month: "long",
@@ -349,6 +344,52 @@ export function ForwardInterface() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const fetchUsdtKesmSpot = async () => {
+      try {
+        const [decimals, latestRoundData] = await Promise.all([
+          celoPublicClient.readContract({
+            address: CHAINLINK_KES_USD_FEED_CELO,
+            abi: chainlinkAggregatorV3Abi,
+            functionName: "decimals",
+          }),
+          celoPublicClient.readContract({
+            address: CHAINLINK_KES_USD_FEED_CELO,
+            abi: chainlinkAggregatorV3Abi,
+            functionName: "latestRoundData",
+          }),
+        ]);
+
+        const answer = latestRoundData[1];
+        if (answer <= 0n) {
+          if (!cancelled) setUsdtKesmSpot(null);
+          return;
+        }
+
+        const usdPerKes = Number(answer) / 10 ** Number(decimals);
+        const kesPerUsd = usdPerKes > 0 ? 1 / usdPerKes : 0;
+        if (!Number.isFinite(kesPerUsd) || kesPerUsd <= 0) {
+          if (!cancelled) setUsdtKesmSpot(null);
+          return;
+        }
+
+        if (!cancelled) setUsdtKesmSpot(kesPerUsd);
+      } catch {
+        if (!cancelled) setUsdtKesmSpot(null);
+      }
+    };
+
+    void fetchUsdtKesmSpot();
+    const intervalId = window.setInterval(fetchUsdtKesmSpot, 30_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
     if (state !== "REQUESTING" && state !== "QUOTES_LIVE" && state !== "QUOTE_SELECTED") {
       return;
     }
@@ -408,6 +449,7 @@ export function ForwardInterface() {
     setSelectedQuoteId(null);
     setQuotes([]);
     setWindowRemaining(QUOTE_WINDOW_SECONDS);
+    setIsQuotePopupOpen(true);
     setState("REQUESTING");
   };
 
@@ -434,6 +476,7 @@ export function ForwardInterface() {
 
     setSelectedQuoteId(quoteId);
     setState("QUOTE_SELECTED");
+    setIsQuotePopupOpen(false);
     setErrorMessage(null);
   };
 
@@ -472,9 +515,8 @@ export function ForwardInterface() {
                 value={pair}
                 options={pairOptions}
                 onChange={setPair}
-                className="[&_button]:h-[36px]"
               />
-              <HelperText className="mt-0.5 text-[11px]">
+              <HelperText className="mt-1 text-[11px]">
                 Spot:{" "}
                 <span className="text-[var(--inst-text)]">
                   {hasValidSpot ? spot.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—"}
@@ -505,7 +547,7 @@ export function ForwardInterface() {
                       setCalendarMonth(parseIsoDate(expiryDate));
                       setIsCalendarOpen((prev) => !prev);
                     }}
-                    className="flex h-[36px] w-full items-center justify-between rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-[14px] text-[var(--inst-text)]"
+                    className="flex h-[44px] w-full items-center justify-between rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-[14px] text-[var(--inst-text)]"
                   >
                     <span>{formatDateInput(expiryDate)}</span>
                     <Calendar className="h-4 w-4 text-[var(--inst-muted)]" />
@@ -592,7 +634,7 @@ export function ForwardInterface() {
                     </div>
                   ) : null}
                 </div>
-                <HelperText className="mt-0.5 text-[11px]">
+                <HelperText className="mt-1 text-[11px]">
                   {typeof expiryCountdownDays === "number" ? `${expiryCountdownDays} days` : "—"}
                 </HelperText>
               </div>
@@ -604,14 +646,13 @@ export function ForwardInterface() {
                   value={strike}
                   onChange={(event) => setStrike(event.target.value)}
                   placeholder="2,200.00"
-                  className="[&]:h-[36px]"
                   rightAdornment={
                     <span className="whitespace-nowrap text-[9px] leading-none font-semibold text-[var(--inst-muted)]">
                       {quoteCurrency} per {baseCurrency}
                     </span>
                   }
                 />
-                <HelperText className="mt-0.5 text-[11px]">{moneyness}</HelperText>
+                <HelperText className="mt-1 text-[11px]">{moneyness}</HelperText>
               </div>
             </div>
 
@@ -622,7 +663,6 @@ export function ForwardInterface() {
                 value={notional}
                 onChange={(event) => setNotional(event.target.value)}
                 placeholder="10,000"
-                className="[&]:h-[36px]"
                 leftAdornment={<span className="text-[14px]">$</span>}
                 rightAdornment={
                   <span className="text-[10px] font-semibold text-[var(--inst-muted)]">{baseCurrency}</span>
@@ -630,7 +670,7 @@ export function ForwardInterface() {
               />
             </div>
 
-            <div className="border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-1.5 text-[11px] text-[var(--inst-muted)]">
+            <div className="border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2 text-[11px] text-[var(--inst-muted)]">
               <div className="flex items-center justify-between">
                 <span>Indicative all-in premium</span>
                 <span>Indicative</span>
@@ -647,8 +687,8 @@ export function ForwardInterface() {
               </div>
             </div>
 
-            <PrimaryButton type="button" onClick={requestQuotes} className="h-[36px]">
-              Request Quote
+            <PrimaryButton type="button" onClick={requestQuotes} className="h-[42px]">
+              Request Quotes
             </PrimaryButton>
             <HelperText className="text-[11px]">Quotes valid for 30s after response.</HelperText>
 
@@ -660,75 +700,6 @@ export function ForwardInterface() {
               Clear
             </button>
         </section>
-
-          <section className="space-y-1 border-t border-[var(--inst-border)] pt-1.5">
-            <div className="flex items-center justify-between">
-              <div className="text-[12px] font-semibold text-[var(--inst-label)]">Quotes</div>
-              {(state === "REQUESTING" || state === "QUOTES_LIVE" || state === "QUOTE_SELECTED") &&
-              windowRemaining > 0 ? (
-                <span className="text-[11px] text-[var(--inst-muted)]">Expires in {windowRemaining}s</span>
-              ) : null}
-            </div>
-            {state === "REQUESTING" ? (
-              <HelperText className="text-[11px]">Request sent to {makers.length} dealers...</HelperText>
-            ) : null}
-
-            {state === "REQUESTING" ? (
-              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-[12px] text-[var(--inst-muted)]">
-                <div className="flex items-center gap-2">
-                  <Spinner />
-                  <span>No quotes yet.</span>
-                </div>
-              </div>
-            ) : null}
-
-            {(state === "QUOTES_LIVE" || state === "QUOTE_SELECTED" || state === "SIGNING" || state === "PENDING" || state === "DONE") &&
-            sortedQuotes.length === 0 ? (
-              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-[12px] text-[var(--inst-muted)]">
-                No quotes yet.
-              </div>
-            ) : null}
-
-            {sortedQuotes.map((quote) => {
-              const isSelected = quote.id === selectedQuoteId;
-              return (
-                <div
-                  key={quote.id}
-                  className={`rounded-[12px] border px-3 py-2.5 ${
-                    isSelected
-                      ? "border-[var(--inst-primary-start)] bg-[var(--inst-control-active)]"
-                      : "border-[var(--inst-border)] bg-[var(--inst-input)]"
-                  }`}
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-[13px] font-semibold text-[var(--inst-text)]">{quote.maker}</div>
-                      <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Spread {quote.spreadBps} bps</div>
-                    </div>
-
-                    <div className="text-left sm:text-right">
-                      <div className="text-[15px] font-semibold text-[var(--inst-text)]">{toMoney(quote.premium)}</div>
-                      <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Fees {toMoney(quote.fees)}</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-1.5 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-[11px] text-[var(--inst-muted)]">TTL: {windowRemaining}s</span>
-                    <button
-                      type="button"
-                      onClick={() => selectQuote(quote.id)}
-                      disabled={expired || state === "SIGNING" || state === "PENDING" || state === "DONE"}
-                      className="h-8 rounded-[9px] border border-[var(--inst-border)] px-3 text-[12px] font-semibold text-[var(--inst-text)] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Accept
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {expired ? <HelperText className="text-[11px]">Quotes expired - request again.</HelperText> : null}
-          </section>
 
           {selectedQuote ? (
             <section className="space-y-1 rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] p-1.5">
@@ -783,6 +754,58 @@ export function ForwardInterface() {
             </div>
           ) : null}
       </SurfaceCard>
+
+      {isQuotePopupOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4">
+          <div className="w-full max-w-[360px] rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-surface)] p-4 shadow-[0_2px_8px_rgba(15,23,42,0.08)]">
+            <div className="flex items-center justify-between">
+              <div className="text-[12px] font-semibold text-[var(--inst-label)]">Quotes</div>
+              <button
+                type="button"
+                onClick={() => setIsQuotePopupOpen(false)}
+                className="text-[12px] font-semibold text-[var(--inst-muted)]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-2 text-[11px] text-[var(--inst-muted)]">
+              {windowRemaining > 0 ? `Expires in ${windowRemaining}s` : "Quotes expired"}
+            </div>
+
+            {sortedQuotes.length === 0 ? (
+              <div className="mt-3 rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-[12px] text-[var(--inst-muted)]">
+                No quotes yet.
+              </div>
+            ) : null}
+
+            <div className="mt-3 space-y-2">
+              {sortedQuotes.map((quote) => (
+                <div
+                  key={quote.id}
+                  className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-center"
+                >
+                  <div className="text-[13px] font-semibold text-[var(--inst-text)]">{quote.maker}</div>
+                  <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Spread {quote.spreadBps} bps</div>
+                  <div className="mt-1 text-[18px] font-semibold text-[var(--inst-text)]">
+                    {toMoney(quote.premium)}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Fees {toMoney(quote.fees)}</div>
+                  <div className="mt-1 text-[11px] text-[var(--inst-muted)]">TTL: {windowRemaining}s</div>
+                  <button
+                    type="button"
+                    onClick={() => selectQuote(quote.id)}
+                    disabled={expired || state === "SIGNING" || state === "PENDING" || state === "DONE"}
+                    className="mt-2 h-8 w-full rounded-[9px] border border-[var(--inst-border)] px-3 text-[12px] font-semibold text-[var(--inst-text)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Accept
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
