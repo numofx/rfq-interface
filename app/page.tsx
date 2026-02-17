@@ -1,16 +1,20 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout, CardWrapper, ContentLayout, containerClass } from "@/components/layout/page-shell";
+import { supabase } from "@/lib/supabase/client";
 
 type View = "login" | "signup" | "password" | "verify" | "team";
 
 export default function HomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [view, setView] = useState<View>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
@@ -18,19 +22,94 @@ export default function HomePage() {
   const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
   const [contactValue, setContactValue] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [isAuthBusy, setIsAuthBusy] = useState(false);
+
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    if (!verified) return;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) {
+          setView("team");
+        }
+      })
+      .catch(() => {
+        setAuthError("We couldn’t confirm your session yet. Please try again.");
+      });
+  }, [searchParams]);
 
   const handleSignupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setAuthError("");
+    setStatusMessage("");
     setView("password");
   };
 
-  const handlePasswordSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setAuthError("");
+    setStatusMessage("");
+
+    if (!signupEmail.trim()) {
+      setAuthError("Please enter your email address.");
+      return;
+    }
+    if (!newPassword.trim()) {
+      setAuthError("Please create a password.");
+      return;
+    }
+
+    setIsAuthBusy(true);
+    const { error } = await supabase.auth.signUp({
+      email: signupEmail.trim(),
+      password: newPassword,
+      options: {
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    setIsAuthBusy(false);
+
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
     setView("verify");
   };
 
-  const handleVerificationContinue = () => {
-    setView("team");
+  const handleVerificationContinue = async () => {
+    setAuthError("");
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      setView("team");
+      return;
+    }
+    setAuthError("We couldn’t confirm your email yet. Please check your inbox.");
+  };
+
+  const handleResendVerification = async () => {
+    setAuthError("");
+    setStatusMessage("");
+    if (!signupEmail.trim()) {
+      setAuthError("Please enter your email address.");
+      return;
+    }
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: signupEmail.trim(),
+    });
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+    setStatusMessage("Verification email sent.");
   };
 
   const headerTabs =
@@ -364,6 +443,8 @@ export default function HomePage() {
                           id="first-name"
                           type="text"
                           placeholder="Enter your first name"
+                          value={firstName}
+                          onChange={(event) => setFirstName(event.target.value)}
                           className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                         />
                       </div>
@@ -375,6 +456,8 @@ export default function HomePage() {
                           id="last-name"
                           type="text"
                           placeholder="Enter your last name"
+                          value={lastName}
+                          onChange={(event) => setLastName(event.target.value)}
                           className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                         />
                       </div>
@@ -396,12 +479,14 @@ export default function HomePage() {
 
                     <button
                       type="submit"
+                      disabled={isAuthBusy}
                       className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
                     >
-                      Continue &rarr;
+                      {isAuthBusy ? "Creating..." : "Continue →"}
                     </button>
                   </form>
 
+                  {authError ? <p className="text-[12px] text-[#b42318]">{authError}</p> : null}
                   <p className="text-center text-[14px] text-[#8f9099]">
                     Do you have an account?{" "}
                     <button type="button" onClick={() => setView("login")} className="font-semibold text-[#131318]">
@@ -427,6 +512,7 @@ export default function HomePage() {
 
                   <button
                     type="button"
+                    onClick={handleResendVerification}
                     className="h-[42px] w-full rounded-[12px] bg-[#e5e5e8] text-[14px] font-semibold text-[#141419]"
                   >
                     Resend verification email
@@ -439,6 +525,9 @@ export default function HomePage() {
                   >
                     I&apos;ve verified &mdash; continue
                   </button>
+
+                  {statusMessage ? <p className="text-[12px] text-[#4b5d4b]">{statusMessage}</p> : null}
+                  {authError ? <p className="text-[12px] text-[#b42318]">{authError}</p> : null}
                 </div>
               </>
             ) : (
@@ -497,11 +586,14 @@ export default function HomePage() {
 
                     <button
                       type="submit"
+                      disabled={isAuthBusy}
                       className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
                     >
-                      Continue &rarr;
+                      {isAuthBusy ? "Creating..." : "Continue →"}
                     </button>
                   </form>
+
+                  {authError ? <p className="text-[12px] text-[#b42318]">{authError}</p> : null}
                 </div>
               </>
             )}
