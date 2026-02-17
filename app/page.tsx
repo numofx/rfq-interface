@@ -4,21 +4,32 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout, CardWrapper, ContentLayout, containerClass } from "@/components/layout/page-shell";
 
-type View = "login" | "signup" | "team";
+type View = "login" | "signup" | "password" | "verify" | "team";
 
 export default function HomePage() {
   const router = useRouter();
   const [view, setView] = useState<View>("login");
   const [showPassword, setShowPassword] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [signupEmail, setSignupEmail] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const [contactMethod, setContactMethod] = useState("");
   const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
   const [contactValue, setContactValue] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   const handleSignupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setView("password");
+  };
+
+  const handlePasswordSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setView("verify");
+  };
+
+  const handleVerificationContinue = () => {
     setView("team");
   };
 
@@ -41,7 +52,7 @@ export default function HomePage() {
             type="button"
             onClick={() => setView("signup")}
             className={`rounded-[10px] px-6 py-2 ${
-              view === "signup"
+              view === "signup" || view === "password" || view === "verify"
                 ? "bg-[#f5f5f6] font-semibold text-[#141419] shadow-sm"
                 : "font-medium text-[#666674]"
             }`}
@@ -336,7 +347,7 @@ export default function HomePage() {
                   <p className="text-center text-[14px] text-[#8f9099]">Forgot your password?</p>
                 </div>
               </>
-            ) : (
+            ) : view === "signup" ? (
               <>
                 <div className="space-y-5">
                   <h1 className="text-[26px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
@@ -397,6 +408,100 @@ export default function HomePage() {
                       Login
                     </button>
                   </p>
+                </div>
+              </>
+            ) : view === "verify" ? (
+              <>
+                <div className="space-y-5 text-center">
+                  <h1 className="text-[24px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#131318]">
+                    First, let&apos;s verify your email
+                  </h1>
+
+                  <p className="text-[14px] leading-[1.5] text-[#3a3b43]">
+                    Check{" "}
+                    <span className="font-semibold text-[#141419]">
+                      {signupEmail.trim() || "your inbox"}
+                    </span>{" "}
+                    to verify your account and get started.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="h-[42px] w-full rounded-[12px] bg-[#e5e5e8] text-[14px] font-semibold text-[#141419]"
+                  >
+                    Resend verification email
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleVerificationContinue}
+                    className="text-[13px] font-medium text-[#6f717b] hover:text-[#444551]"
+                  >
+                    I&apos;ve verified &mdash; continue
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-5">
+                  <button
+                    type="button"
+                    onClick={() => setView("signup")}
+                    className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-[#ededf0] text-[16px] text-[#15151b] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
+                    aria-label="Back to sign up"
+                  >
+                    &larr;
+                  </button>
+
+                  <h1 className="text-[26px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
+                    Create your password
+                  </h1>
+
+                  <form className="space-y-4" aria-label="Create password form" onSubmit={handlePasswordSubmit}>
+                    <div>
+                      <label htmlFor="new-password" className="sr-only">
+                        Password
+                      </label>
+                      <div className="flex h-[42px] items-center rounded-[12px] border border-[#e7e7ea] bg-[#efeff2] px-3">
+                        <input
+                          id="new-password"
+                          type={showCreatePassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(event) => setNewPassword(event.target.value)}
+                          placeholder="Enter your password"
+                          className="h-full w-full bg-transparent text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCreatePassword((prev) => !prev)}
+                          className="ml-2 flex h-[28px] w-[28px] items-center justify-center rounded-[9px] bg-[#ffffff]"
+                          aria-label={showCreatePassword ? "Hide password" : "Show password"}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-[12px] w-[12px] text-[#1c1c21]"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+                            <circle cx="12" cy="12" r="3" />
+                            {showCreatePassword ? <path d="M3 3l18 18" /> : null}
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
+                    >
+                      Continue &rarr;
+                    </button>
+                  </form>
                 </div>
               </>
             )}
