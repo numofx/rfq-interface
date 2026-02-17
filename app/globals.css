@@ -4,6 +4,19 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --inst-bg: #f3f3f4;
+  --inst-surface: #f5f5f6;
+  --inst-input: #e8e8eb;
+  --inst-border: #e7e7ea;
+  --inst-control: #e5e5e7;
+  --inst-control-active: #f5f5f6;
+  --inst-text: #131318;
+  --inst-label: #666674;
+  --inst-muted: #8f9099;
+  --inst-placeholder: #9697a4;
+  --inst-primary-start: #111118;
+  --inst-primary-end: #171722;
+  --inst-primary-text: #f2f2f4;
   --fx-bg: #F7F9FC;
   --fx-card: #FFFFFF;
   --fx-heading: #0F172A;

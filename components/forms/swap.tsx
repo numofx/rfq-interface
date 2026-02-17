@@ -1,480 +1,667 @@
 "use client";
 
-import { Check, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { useForwardRates } from "@/lib/hooks/useFxRates";
-import { useRouter } from "next/navigation";
+import { Calendar } from "lucide-react";
+import {
+  DropdownSelect,
+  FieldLabel,
+  HelperText,
+  PrimaryButton,
+  SegmentedControl,
+  SurfaceCard,
+  TextInput,
+} from "@/components/ui/rfq-primitives";
 
-interface CalendarPickerProps {
-  selectedDate: string;
-  onDateSelect: (date: string) => void;
-  onClose: () => void;
+type RFQState =
+  | "IDLE"
+  | "REQUESTING"
+  | "QUOTES_LIVE"
+  | "QUOTE_SELECTED"
+  | "SIGNING"
+  | "PENDING"
+  | "DONE"
+  | "ERROR";
+
+type Pair = "USDC/cNGN" | "USDT/KESm";
+type OptionType = "call" | "put";
+
+interface Quote {
+  id: string;
+  maker: string;
+  premium: number;
+  fees: number;
+  spreadBps: number;
 }
 
-const CalendarPicker = ({
-  selectedDate,
-  onDateSelect,
-  onClose,
-}: CalendarPickerProps) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+const QUOTE_WINDOW_SECONDS = 8;
+const REQUEST_DELAY_MS = 1400;
 
-  const daysInMonth = (date: Date) =>
-    new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+const pairs = [
+  { id: "usdc-cngn", label: "USDC/cNGN" },
+  { id: "usdt-kesm", label: "USDT/KESm" },
+] as const;
 
-  const firstDayOfMonth = (date: Date) =>
-    new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+const optionOptions: ReadonlyArray<{ value: OptionType; label: string }> = [
+  { value: "call", label: "Call" },
+  { value: "put", label: "Put" },
+] as const;
 
-  const generateCalendarDays = () => {
-    const days = [];
-    const totalDays = daysInMonth(currentMonth);
-    const firstDay = firstDayOfMonth(currentMonth);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+const makers = ["Maker A", "Maker B", "Maker C", "Maker D"] as const;
 
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="p-1.5" />);
-    }
+function PairIcons({ left, right }: { left: string; right: string }) {
+  return (
+    <span className="flex items-center -space-x-1.5">
+      <Image
+        src={left}
+        alt=""
+        width={16}
+        height={16}
+        aria-hidden="true"
+        className="h-4 w-4 rounded-full border border-[var(--inst-surface)] bg-white object-cover"
+      />
+      <Image
+        src={right}
+        alt=""
+        width={16}
+        height={16}
+        aria-hidden="true"
+        className="h-4 w-4 rounded-full border border-[var(--inst-surface)] bg-white object-cover"
+      />
+    </span>
+  );
+}
 
-    for (let day = 1; day <= totalDays; day++) {
-      const date = new Date(
-        currentMonth.getFullYear(),
-        currentMonth.getMonth(),
-        day
-      );
-      date.setHours(0, 0, 0, 0);
+function PairFlag({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={14}
+      height={14}
+      className="h-3.5 w-3.5 rounded-full border border-[var(--inst-surface)] object-cover"
+    />
+  );
+}
 
-      const isPast = date < today;
-      const isSelected =
-        date.toDateString() === new Date(selectedDate).toDateString();
+function PairFlags({ flags }: { flags: Array<{ src: string; alt: string }> }) {
+  return (
+    <span className="flex items-center -space-x-1.5">
+      {flags.map((flag) => (
+        <PairFlag key={flag.src} src={flag.src} alt={flag.alt} />
+      ))}
+    </span>
+  );
+}
 
-      days.push(
-        <button
-          key={day}
-          onClick={() => {
-            if (!isPast) {
-              const newDate = new Date(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth(),
-                day
-              );
-              onDateSelect(newDate.toISOString().split("T")[0]);
-              onClose();
-            }
-          }}
-          disabled={isPast}
-          className={`rounded-lg p-1.5 text-center text-sm font-medium transition ${
-            isPast
-              ? "cursor-not-allowed text-gray-300"
-              : "cursor-pointer hover:bg-slate-100"
-          } ${isSelected ? "bg-slate-900 text-white hover:bg-slate-900" : ""}`}
-        >
-          {day}
-        </button>
-      );
-    }
+function toMoney(value: number) {
+  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+}
 
-    return days;
-  };
+function parseIsoDate(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 
-  const changeMonth = (increment: number) => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + increment, 1)
-    );
-  };
+function toIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateInput(iso: string) {
+  return parseIsoDate(iso).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function bestPriceFirst(quotes: Quote[]) {
+  return quotes.slice().sort((a, b) => a.premium - b.premium);
+}
+
+function makeMockQuotes(notional: number): Quote[] {
+  const sizeFactor = Math.max(notional / 10000, 1);
+  const responseCount = Math.floor(Math.random() * 4);
+  const generated = makers.slice(0, responseCount).map((maker, index) => {
+    const base = 1.75 + sizeFactor * 0.08;
+    const drift = (Math.random() - 0.5) * 0.35;
+    const premium = Number((base + drift + index * 0.06).toFixed(2));
+    const fees = Number((premium * 0.02).toFixed(2));
+    const spreadBps = 8 + Math.floor(Math.random() * 9);
+
+    return {
+      id: `${maker}-${Date.now()}-${index}`,
+      maker,
+      premium,
+      fees,
+      spreadBps,
+    };
+  });
+
+  return bestPriceFirst(generated);
+}
+
+function Spinner() {
+  return <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--inst-muted)] border-t-transparent" />;
+}
+
+function StatusRail({ state }: { state: RFQState }) {
+  const activeIndex = state === "SIGNING" ? 0 : state === "PENDING" ? 1 : state === "DONE" ? 2 : -1;
+  const items = ["SIGN", "PENDING", "DONE"];
 
   return (
-    <div className="absolute bottom-full left-0 right-0 z-40 mb-2 rounded-xl border border-gray-200 bg-white p-3 shadow-2xl">
-      <div className="mb-2 flex items-center justify-between">
-        <button
-          onClick={() => changeMonth(-1)}
-          className="rounded-lg p-1.5 text-lg hover:bg-gray-100"
-          aria-label="Previous month"
-        >
-          ‹
-        </button>
-        <div className="text-sm font-semibold text-gray-900">
-          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </div>
-        <button
-          onClick={() => changeMonth(1)}
-          className="rounded-lg p-1.5 text-lg hover:bg-gray-100"
-          aria-label="Next month"
-        >
-          ›
-        </button>
-      </div>
-
-      <div className="mb-1 grid grid-cols-7 gap-1">
-        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-          <div key={day} className="p-1 text-center text-xs font-semibold text-gray-500">
-            {day}
+    <div className="grid grid-cols-3 gap-2">
+      {items.map((item, index) => {
+        const isActive = index <= activeIndex;
+        return (
+          <div
+            key={item}
+            className={`rounded-[12px] border px-3 py-2 text-center text-[12px] font-semibold ${
+              isActive
+                ? "border-[var(--inst-primary-start)] bg-[var(--inst-control-active)] text-[var(--inst-text)]"
+                : "border-[var(--inst-border)] bg-[var(--inst-input)] text-[var(--inst-muted)]"
+            }`}
+          >
+            {item}
           </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">{generateCalendarDays()}</div>
+        );
+      })}
     </div>
   );
-};
-
-type OptionType = "call" | "put";
-type Pair = "USDC/cNGN" | "USDT/KESm";
+}
 
 export function ForwardInterface() {
-  const router = useRouter();
+  const [state, setState] = useState<RFQState>("IDLE");
+  const [pair, setPair] = useState<Pair>("USDC/cNGN");
   const [optionType, setOptionType] = useState<OptionType>("call");
-  const [selectedPair, setSelectedPair] = useState<Pair>("USDC/cNGN");
-  const [showPairMenu, setShowPairMenu] = useState(false);
-  const [usdAmount, setUsdAmount] = useState("");
-  const [strikePrice, setStrikePrice] = useState("2,200.00");
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [secondsToRefresh, setSecondsToRefresh] = useState(9);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const calendarRef = useRef<HTMLDivElement>(null);
-  const pairRef = useRef<HTMLDivElement>(null);
+  const [notional, setNotional] = useState("10000");
+  const [strike, setStrike] = useState("2200.00");
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+  const [windowRemaining, setWindowRemaining] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => parseIsoDate(expiryDate));
+  const calendarRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: forwardRateData, isLoading } = useForwardRates("3M");
-
-  const pairOptions = ["USDC/cNGN", "USDT/KESm"] as const;
-  const tokenIcon: Record<"USDC" | "cNGN" | "USDT" | "KESm", string> = {
-    USDC: "/tokens/usdc.svg",
-    cNGN: "/tokens/cngn.svg",
-    USDT: "/tokens/usdt.svg",
-    KESm: "/tokens/kesm.svg",
-  };
-  const pairMeta: Record<Pair, { network: string; swatch: string }> = {
-    "USDC/cNGN": { network: "Base", swatch: "bg-[#2126F8]" },
-    "USDT/KESm": { network: "Celo", swatch: "bg-[#E5DB2B]" },
-  };
-
-  const PairIconSplit = ({
-    base,
-    quote,
-    compact = false,
-  }: {
-    base: keyof typeof tokenIcon;
-    quote: keyof typeof tokenIcon;
-    compact?: boolean;
-  }) => (
-      <div className={`flex items-center ${compact ? "-space-x-1.5" : "-space-x-2"}`}>
-      <div
-        className={`relative overflow-hidden rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.14)] ${
-          compact ? "h-8 w-8" : "h-10 w-10"
-        }`}
-      >
-        <Image
-          src={tokenIcon[base]}
-          alt={`${base} logo`}
-          fill
-          sizes={compact ? "32px" : "40px"}
-          className="object-cover"
-        />
-      </div>
-      <div
-        className={`relative overflow-hidden rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.14)] ${
-          compact ? "h-8 w-8" : "h-10 w-10"
-        }`}
-      >
-        <Image
-          src={tokenIcon[quote]}
-          alt={`${quote} logo`}
-          fill
-          sizes={compact ? "32px" : "40px"}
-          className="object-cover"
-        />
-      </div>
-    </div>
+  const pairOptions = useMemo(
+    () =>
+      pairs.map((nextPair) => {
+        if (nextPair.label === "USDC/cNGN") {
+          return {
+            value: nextPair.label as Pair,
+            label: nextPair.label,
+            leading: <PairIcons left="/tokens/usdc.svg" right="/tokens/cngn.svg" />,
+            trailing: (
+              <PairFlags
+                flags={[
+                  { src: "/tokens/us.svg", alt: "United States flag" },
+                  { src: "/tokens/ng.svg", alt: "Nigeria flag" },
+                ]}
+              />
+            ),
+          };
+        }
+        return {
+          value: nextPair.label as Pair,
+          label: nextPair.label,
+          leading: <PairIcons left="/tokens/usdt.svg" right="/tokens/kesm.svg" />,
+          trailing: (
+            <PairFlags
+              flags={[
+                { src: "/tokens/us.svg", alt: "United States flag" },
+                { src: "/tokens/ke.svg", alt: "Kenya flag" },
+              ]}
+            />
+          ),
+        };
+      }),
+    []
   );
 
-  const renderPairLabel = (pair: Pair, compact = false) => {
-    const [base, quote] = pair.split("/") as [keyof typeof tokenIcon, keyof typeof tokenIcon];
-    const meta = pairMeta[pair];
+  const parsedNotional = Number(notional.replace(/,/g, "")) || 0;
+  const parsedStrike = Number(strike.replace(/,/g, "")) || 0;
+  const [baseCurrency, quoteCurrency] = pair.split("/") as [string, string];
+  const displayExpiry = parseIsoDate(expiryDate).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const minDateIso = toIsoDate(new Date());
 
-    return (
-      <div className="flex items-center gap-3">
-        <PairIconSplit base={base} quote={quote} compact={compact} />
-        <div className={`flex items-center ${compact ? "text-[14px]" : "text-[16px]"} leading-none`}>
-          <span className="font-semibold text-slate-800">{pair}</span>
-          <span className="mx-1 text-[#8E8A87]">·</span>
-          <span className={`mr-1 inline-block ${compact ? "h-3 w-3" : "h-4 w-4"} ${meta.swatch}`} />
-          <span className="font-semibold text-[#8E8A87]">{meta.network}</span>
-        </div>
-      </div>
-    );
-  };
+  const sortedQuotes = useMemo(() => bestPriceFirst(quotes), [quotes]);
+  const selectedQuote = useMemo(
+    () => sortedQuotes.find((quote) => quote.id === selectedQuoteId) ?? null,
+    [selectedQuoteId, sortedQuotes]
+  );
+
+  const expired = (state === "QUOTES_LIVE" || state === "QUOTE_SELECTED") && windowRemaining <= 0;
+
+  const indicativePremium = useMemo(() => {
+    if (!parsedNotional || !parsedStrike) return 0;
+    const contracts = parsedNotional / parsedStrike;
+    return Number((contracts * 1.82).toFixed(2));
+  }, [parsedNotional, parsedStrike]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsToRefresh((prev) => (prev <= 1 ? 9 : prev - 1));
+    if (state !== "REQUESTING" && state !== "QUOTES_LIVE" && state !== "QUOTE_SELECTED") {
+      return;
+    }
+
+    if (windowRemaining <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setWindowRemaining((prev) => Math.max(prev - 1, 0));
     }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+
+    return () => window.clearInterval(timer);
+  }, [state, windowRemaining]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
-        setShowCalendar(false);
-      }
-      if (pairRef.current && !pairRef.current.contains(event.target as Node)) {
-        setShowPairMenu(false);
+    if (state !== "REQUESTING") {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const nextQuotes = makeMockQuotes(parsedNotional);
+      setQuotes(nextQuotes);
+      setState("QUOTES_LIVE");
+    }, REQUEST_DELAY_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [state, parsedNotional]);
+
+  useEffect(() => {
+    if (!expired) {
+      return;
+    }
+
+    if (state === "QUOTE_SELECTED") {
+      setErrorMessage("Selected quote has expired. Request quotes again.");
+    }
+  }, [expired, state]);
+
+  useEffect(() => {
+    if (!isCalendarOpen) {
+      return;
+    }
+
+    const onOutsideClick = (event: MouseEvent) => {
+      if (!calendarRef.current?.contains(event.target as Node)) {
+        setIsCalendarOpen(false);
       }
     };
-    if (showCalendar || showPairMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showCalendar, showPairMenu]);
 
-  const parsedNotional = Number(usdAmount.replace(/,/g, "")) || 0;
-  const parsedStrike = Number(strikePrice.replace(/[^0-9.]/g, "")) || 1;
-  const indicativePrice = forwardRateData?.forwardPoints || 13.33;
-  const ivValue = 69.03;
-  const contractCount = parsedNotional > 0 ? parsedNotional / Math.max(parsedStrike, 0.0001) : 0;
-  const estimatedPremium = contractCount * indicativePrice;
-  const premiumPct = parsedNotional > 0 ? (estimatedPremium / parsedNotional) * 100 : 0;
-  const pairScenario = selectedPair === "USDC/cNGN"
-    ? { up: 2600, flat: 1500 }
-    : { up: 160, flat: 130 };
+    document.addEventListener("mousedown", onOutsideClick);
+    return () => document.removeEventListener("mousedown", onOutsideClick);
+  }, [isCalendarOpen]);
 
-  const calculatePayout = (spotAtExpiry: number) => {
-    if (optionType === "call") {
-      return Math.max(spotAtExpiry - parsedStrike, 0) * contractCount;
-    }
-    return Math.max(parsedStrike - spotAtExpiry, 0) * contractCount;
+  const requestQuotes = () => {
+    setErrorMessage(null);
+    setSelectedQuoteId(null);
+    setQuotes([]);
+    setWindowRemaining(QUOTE_WINDOW_SECONDS);
+    setState("REQUESTING");
   };
 
-  const payoutAtUp = calculatePayout(pairScenario.up);
-  const payoutAtFlat = calculatePayout(pairScenario.flat);
+  const clearForm = () => {
+    setState("IDLE");
+    setPair("USDC/cNGN");
+    setOptionType("call");
+    const resetExpiry = toIsoDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+    setExpiryDate(resetExpiry);
+    setCalendarMonth(parseIsoDate(resetExpiry));
+    setIsCalendarOpen(false);
+    setNotional("");
+    setStrike("");
+    setQuotes([]);
+    setSelectedQuoteId(null);
+    setWindowRemaining(0);
+    setErrorMessage(null);
+  };
 
-  const displayDate = new Date(expiryDate).toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  });
-  const [baseCurrency, quoteCurrency] = selectedPair.split("/") as [Pair extends `${infer A}/${infer B}` ? A : never, Pair extends `${infer A}/${infer B}` ? B : never];
+  const selectQuote = (quoteId: string) => {
+    if (expired) {
+      return;
+    }
+
+    setSelectedQuoteId(quoteId);
+    setState("QUOTE_SELECTED");
+    setErrorMessage(null);
+  };
+
+  const executeTrade = () => {
+    if (!selectedQuote) {
+      setState("ERROR");
+      setErrorMessage("No quote selected.");
+      return;
+    }
+
+    if (expired) {
+      setState("ERROR");
+      setErrorMessage("Quote expired before execution. Request a fresh quote.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setState("SIGNING");
+
+    window.setTimeout(() => {
+      setState("PENDING");
+    }, 1200);
+
+    window.setTimeout(() => {
+      setState("DONE");
+    }, 2800);
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--fx-bg)] px-4 py-4 [font-family:Inter,'SF_Pro_Text',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif]">
-      <div className="relative w-full max-w-[470px]">
-        <div className="fixed left-24 top-12 z-20 flex items-center gap-2">
-          <Image src="/numo.png" alt="Numo" width={112} height={39} className="h-8 w-auto" />
-          <div className="h-5 w-px bg-[var(--fx-border)]" />
-          <h1 className="text-[18px] font-semibold text-[var(--fx-heading)]">FX Options</h1>
-        </div>
+    <div className="min-h-screen bg-[var(--inst-bg)] px-3 py-7">
+      <div className="mx-auto w-full max-w-[430px]">
+        <h1 className="text-[22px] leading-none font-semibold tracking-[-0.02em] text-[var(--inst-text)]">RFQ</h1>
+        <HelperText className="mt-1.5 max-w-[420px]">
+          Request dealer quotes, accept the best price, then execute the trade.
+        </HelperText>
 
-        <div className="rounded-[26px] border border-[rgba(226,232,240,0.92)] bg-[rgba(255,255,255,0.72)] p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)] backdrop-blur-[6px]">
-        <div className="space-y-2">
-          <div className="relative" ref={pairRef}>
-            <button
-              onClick={() => setShowPairMenu((prev) => !prev)}
-              className="flex h-11 w-full items-center justify-between rounded-xl border border-[var(--fx-border)] bg-[#F8FAFC] px-3 text-left shadow-[0_2px_6px_rgba(15,23,42,0.04)] transition"
-              aria-haspopup="menu"
-              aria-expanded={showPairMenu}
-              aria-label="Select pair"
-            >
-              {renderPairLabel(selectedPair)}
-              {showPairMenu ? (
-                <ChevronUp className="h-4 w-4 text-[var(--fx-secondary)]" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-[var(--fx-secondary)]" />
-              )}
-            </button>
-            {showPairMenu && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-[20px] border border-[var(--fx-border)] bg-[var(--fx-card)] p-3 shadow-[0_8px_24px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)]">
-                <p className="mb-2 px-1 text-[10px] font-semibold tracking-wide text-[var(--fx-secondary)]">
-                  SELECT PAIR
-                </p>
-                <div className="space-y-1.5">
-                  {pairOptions.map((pair) => {
-                    const isSelected = selectedPair === pair;
-                    return (
-                      <button
-                        key={pair}
-                        onClick={() => {
-                          setSelectedPair(pair);
-                          setShowPairMenu(false);
-                        }}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition ${
-                          isSelected ? "bg-[#F1F5F9]" : "bg-[var(--fx-card)]"
-                        }`}
-                      >
-                        {renderPairLabel(pair, true)}
-                        {isSelected ? <Check className="h-5 w-5 text-black" /> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div
-            className="grid h-11 grid-cols-2 gap-2"
-            role="tablist"
-            aria-label="Option type"
-          >
-            <button
-              type="button"
-              onClick={() => setOptionType("call")}
-              role="tab"
-              aria-selected={optionType === "call"}
-              className={`flex h-full items-center justify-center rounded-xl border px-4 text-[14px] font-semibold tracking-tight transition focus-visible:outline-none ${
-                optionType === "call"
-                  ? "border-[#111827] bg-[#111827] text-white shadow-[0_2px_6px_rgba(17,24,39,0.28)]"
-                  : "border-[#D1D5DB] bg-[#F3F4F6] text-[var(--fx-label)] hover:bg-[#E5E7EB]"
-              }`}
-            >
-              Call
-            </button>
-            <button
-              type="button"
-              onClick={() => setOptionType("put")}
-              role="tab"
-              aria-selected={optionType === "put"}
-              className={`flex h-full items-center justify-center rounded-xl border px-4 text-[14px] font-semibold tracking-tight transition focus-visible:outline-none ${
-                optionType === "put"
-                  ? "border-[#111827] bg-[#111827] text-white shadow-[0_2px_6px_rgba(17,24,39,0.28)]"
-                  : "border-[#D1D5DB] bg-[#F3F4F6] text-[var(--fx-label)] hover:bg-[#E5E7EB]"
-              }`}
-            >
-              Put
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <div ref={calendarRef} className="relative">
-              <label className="mb-1 block text-[13px] font-semibold text-[var(--fx-label)]">Expiry</label>
-              <button
-                onClick={() => setShowCalendar((prev) => !prev)}
-                className="flex h-8.5 w-full items-center justify-between rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 text-[14px] leading-none text-[var(--fx-label)]"
-              >
-                <span>{displayDate}</span>
-                <ChevronDown className="h-4 w-4 text-[var(--fx-secondary)]" />
-              </button>
-              {showCalendar && (
-                <CalendarPicker
-                  selectedDate={expiryDate}
-                  onDateSelect={(date) => {
-                    setExpiryDate(date);
-                    setShowCalendar(false);
-                  }}
-                  onClose={() => setShowCalendar(false)}
-                />
-              )}
+        <SurfaceCard className="mt-5 space-y-4.5">
+          <section className="space-y-3">
+            <div>
+              <FieldLabel htmlFor="pair">Pair</FieldLabel>
+              <DropdownSelect
+                value={pair}
+                options={pairOptions}
+                onChange={setPair}
+              />
             </div>
 
             <div>
-              <label className="mb-1 block text-[13px] font-semibold text-[var(--fx-label)]">Strike</label>
-              <div className="flex h-8.5 items-center gap-2 rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 text-[14px] leading-none text-[var(--fx-label)]">
-                <input
-                  value={strikePrice}
-                  onChange={(e) => setStrikePrice(e.target.value)}
-                  className="w-full min-w-0 bg-transparent text-left outline-none"
+              <FieldLabel>Option Type</FieldLabel>
+              <SegmentedControl
+                value={optionType}
+                onChange={setOptionType}
+                options={optionOptions}
+                className="grid-cols-2"
+                optionClassName="h-7.5"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <div>
+                <FieldLabel htmlFor="expiry">Expiry</FieldLabel>
+                <div ref={calendarRef} className="relative">
+                  <button
+                    id="expiry"
+                    type="button"
+                    onClick={() => {
+                      setCalendarMonth(parseIsoDate(expiryDate));
+                      setIsCalendarOpen((prev) => !prev);
+                    }}
+                    className="flex h-[44px] w-full items-center justify-between rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-[14px] text-[var(--inst-text)]"
+                  >
+                    <span>{formatDateInput(expiryDate)}</span>
+                    <Calendar className="h-4 w-4 text-[var(--inst-muted)]" />
+                  </button>
+
+                  {isCalendarOpen ? (
+                    <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[300px] rounded-[28px] border border-[var(--inst-border)] bg-[var(--inst-surface)] p-4">
+                      <div className="mb-3 flex items-center justify-between px-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCalendarMonth(
+                              new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1)
+                            )
+                          }
+                          className="h-8 w-8 rounded-full text-[24px] leading-none text-[var(--inst-text)]"
+                          aria-label="Previous month"
+                        >
+                          ‹
+                        </button>
+                        <div className="text-[16px] font-semibold text-[var(--inst-text)]">
+                          {calendarMonth.toLocaleDateString("en-US", {
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCalendarMonth(
+                              new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1)
+                            )
+                          }
+                          className="h-8 w-8 rounded-full text-[24px] leading-none text-[var(--inst-text)]"
+                          aria-label="Next month"
+                        >
+                          ›
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-[var(--inst-muted)]">
+                        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                          <div key={day} className="py-1">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-1 grid grid-cols-7 gap-y-1 text-center">
+                        {Array.from({ length: 42 }, (_, idx) => {
+                          const year = calendarMonth.getFullYear();
+                          const month = calendarMonth.getMonth();
+                          const firstDay = new Date(year, month, 1).getDay();
+                          const daysInMonth = new Date(year, month + 1, 0).getDate();
+                          const dayNumber = idx - firstDay + 1;
+                          const inMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
+                          const date = new Date(year, month, dayNumber);
+                          const iso = toIsoDate(date);
+                          const isDisabled = !inMonth || iso < minDateIso;
+                          const isSelected = inMonth && iso === expiryDate;
+
+                          return (
+                            <button
+                              key={`${year}-${month}-${idx}`}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => {
+                                setExpiryDate(iso);
+                                setIsCalendarOpen(false);
+                              }}
+                              className={`mx-auto h-8 w-8 rounded-[9px] text-[14px] ${
+                                isSelected
+                                  ? "bg-[#111827] font-semibold text-white"
+                                  : isDisabled
+                                    ? "text-[#b7b9c4]"
+                                    : "text-[var(--inst-text)]"
+                              }`}
+                            >
+                              {inMonth ? dayNumber : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div>
+                <FieldLabel htmlFor="strike">Strike</FieldLabel>
+                <TextInput
+                  id="strike"
+                  value={strike}
+                  onChange={(event) => setStrike(event.target.value)}
+                  placeholder="2,200.00"
+                  rightAdornment={
+                    <span className="whitespace-nowrap text-[9px] leading-none font-semibold text-[var(--inst-muted)]">
+                      {quoteCurrency} per {baseCurrency}
+                    </span>
+                  }
                 />
-                <span className="whitespace-nowrap text-[10px] font-semibold text-[var(--fx-label)]">
-                  {quoteCurrency} per {baseCurrency}
+              </div>
+            </div>
+
+            <div>
+              <FieldLabel htmlFor="notional">Notional</FieldLabel>
+              <TextInput
+                id="notional"
+                value={notional}
+                onChange={(event) => setNotional(event.target.value)}
+                placeholder="10,000"
+                leftAdornment={<span className="text-[14px]">$</span>}
+                rightAdornment={
+                  <span className="text-[10px] font-semibold text-[var(--inst-muted)]">{baseCurrency}</span>
+                }
+              />
+            </div>
+
+            <div className="border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2 text-[11px] text-[var(--inst-muted)]">
+              <div className="flex items-center justify-between">
+                <span>Indicative all-in premium</span>
+                <span>Indicative</span>
+              </div>
+              <div className="mt-1 text-[16px] font-semibold text-[var(--inst-text)]">{toMoney(indicativePremium)}</div>
+            </div>
+
+            <PrimaryButton type="button" onClick={requestQuotes}>
+              Request quotes
+            </PrimaryButton>
+
+            <button
+              type="button"
+              onClick={clearForm}
+              className="text-left text-[12px] font-semibold text-[var(--inst-muted)]"
+            >
+              Clear
+            </button>
+          </section>
+
+          <section className="space-y-2.5 border-t border-[var(--inst-border)] pt-3">
+            <div className="flex items-center justify-between">
+              <div className="text-[12px] font-semibold text-[var(--inst-label)]">Quotes</div>
+              {(state === "REQUESTING" || state === "QUOTES_LIVE" || state === "QUOTE_SELECTED") &&
+              windowRemaining > 0 ? (
+                <span className="text-[11px] text-[var(--inst-muted)]">Expires in {windowRemaining}s</span>
+              ) : null}
+            </div>
+
+            {state === "REQUESTING" ? (
+              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-3 text-[12px] text-[var(--inst-muted)]">
+                <div className="flex items-center gap-2">
+                  <Spinner />
+                  <span>No quotes yet.</span>
+                </div>
+              </div>
+            ) : null}
+
+            {(state === "QUOTES_LIVE" || state === "QUOTE_SELECTED" || state === "SIGNING" || state === "PENDING" || state === "DONE") &&
+            sortedQuotes.length === 0 ? (
+              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-3 text-[12px] text-[var(--inst-muted)]">
+                No quotes yet.
+              </div>
+            ) : null}
+
+            {sortedQuotes.map((quote) => {
+              const isSelected = quote.id === selectedQuoteId;
+              return (
+                <div
+                  key={quote.id}
+                  className={`rounded-[12px] border px-3 py-3 ${
+                    isSelected
+                      ? "border-[var(--inst-primary-start)] bg-[var(--inst-control-active)]"
+                      : "border-[var(--inst-border)] bg-[var(--inst-input)]"
+                  }`}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-[13px] font-semibold text-[var(--inst-text)]">{quote.maker}</div>
+                      <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Spread {quote.spreadBps} bps</div>
+                    </div>
+
+                    <div className="text-left sm:text-right">
+                      <div className="text-[15px] font-semibold text-[var(--inst-text)]">{toMoney(quote.premium)}</div>
+                      <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Fees {toMoney(quote.fees)}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-[11px] text-[var(--inst-muted)]">TTL: {windowRemaining}s</span>
+                    <button
+                      type="button"
+                      onClick={() => selectQuote(quote.id)}
+                      disabled={expired || state === "SIGNING" || state === "PENDING" || state === "DONE"}
+                      className="h-8 rounded-[9px] border border-[var(--inst-border)] px-3 text-[12px] font-semibold text-[var(--inst-text)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Accept
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {expired ? <HelperText className="text-[11px]">Quotes expired - request again.</HelperText> : null}
+          </section>
+
+          {selectedQuote ? (
+            <section className="space-y-3 rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] p-3">
+              <div className="text-[11px] font-semibold tracking-[0.04em] text-[var(--inst-muted)]">CONFIRMATION</div>
+
+              <div className="grid grid-cols-2 gap-y-1 text-[12px]">
+                <span className="text-[var(--inst-muted)]">Type</span>
+                <span className="text-right text-[var(--inst-text)]">{optionType.toUpperCase()}</span>
+                <span className="text-[var(--inst-muted)]">Pair</span>
+                <span className="text-right text-[var(--inst-text)]">{pair}</span>
+                <span className="text-[var(--inst-muted)]">Notional ({baseCurrency})</span>
+                <span className="text-right text-[var(--inst-text)]">{toMoney(parsedNotional)}</span>
+                <span className="text-[var(--inst-muted)]">Expiry</span>
+                <span className="text-right text-[var(--inst-text)]">{displayExpiry}</span>
+                <span className="text-[var(--inst-muted)]">Strike</span>
+                <span className="text-right text-[var(--inst-text)]">{strike || "-"}</span>
+                <span className="text-[var(--inst-muted)]">Premium</span>
+                <span className="text-right text-[var(--inst-text)]">{toMoney(selectedQuote.premium)}</span>
+                <span className="text-[var(--inst-muted)]">Fees</span>
+                <span className="text-right text-[var(--inst-text)]">{toMoney(selectedQuote.fees)}</span>
+                <span className="font-semibold text-[var(--inst-text)]">Total cost</span>
+                <span className="text-right font-semibold text-[var(--inst-text)]">
+                  {toMoney(selectedQuote.premium + selectedQuote.fees)}
                 </span>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="mt-1.5 space-y-1.5">
-          <div className="text-[13px] font-semibold text-[var(--fx-label)]">
-            <span>Notional (USDC)</span>
-          </div>
-
-          <div className="rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 py-1.5">
-            <div className="flex items-center gap-3">
-              <span className="text-[16px] leading-none text-[var(--fx-secondary)]">$</span>
-              <input
-                value={usdAmount}
-                onChange={(e) => {
-                  setUsdAmount(e.target.value);
-                }}
-                className="w-full bg-transparent text-left text-[20px] font-medium leading-none text-[var(--fx-heading)] outline-none"
-                placeholder="10,000"
-              />
-              <button className="rounded-lg px-2 py-0.5 text-[11px] text-[var(--fx-secondary)] transition hover:bg-[#F1F5F9]">
-                Max
-              </button>
-            </div>
-          </div>
-          <div className="text-[12px] text-[var(--fx-secondary)]">
-            Protecting: {(parsedNotional * parsedStrike).toLocaleString("en-US", {
-              maximumFractionDigits: 0,
-            })}{" "}
-            {quoteCurrency} exposure
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border border-[var(--fx-border)] bg-[#F8FAFC] px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-            <div className="border-l-[3px] border-[var(--fx-accent-green)] pl-2">
-              <p className="text-[10px] text-[var(--fx-secondary)]">Indicative premium</p>
-              <p className="text-[17px] font-semibold text-[var(--fx-heading)]">${indicativePrice.toFixed(2)}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="rounded-md bg-[#F1F5F9] p-1 text-[var(--fx-label)]">
-                <RefreshCw className="h-3 w-3" />
-              </button>
-              <span className="text-[10px] text-[var(--fx-secondary)]">updates in {secondsToRefresh}s</span>
-            </div>
-          </div>
-          <div>
-            <button
-              onClick={() => setShowAdvanced((prev) => !prev)}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--fx-label)] underline-offset-2 hover:underline"
-            >
-              Advanced options
-              {showAdvanced ? (
-                <ChevronUp className="h-4 w-4 text-[var(--fx-secondary)]" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-[var(--fx-secondary)]" />
+              {(state === "QUOTE_SELECTED" || state === "SIGNING" || state === "PENDING" || state === "DONE") && (
+                <div className="space-y-3">
+                  <PrimaryButton
+                    type="button"
+                    onClick={executeTrade}
+                    disabled={state === "SIGNING" || state === "PENDING" || state === "DONE"}
+                  >
+                    {state === "SIGNING"
+                      ? "Signing..."
+                      : state === "PENDING"
+                        ? "Pending..."
+                        : state === "DONE"
+                          ? "Trade executed"
+                          : "Execute trade"}
+                  </PrimaryButton>
+                  <StatusRail state={state} />
+                </div>
               )}
-            </button>
-            {showAdvanced && (
-              <div className="mt-1 text-[10px] text-[var(--fx-secondary)]">
-                Implied Volatility (IV): {ivValue.toFixed(2)}%
-              </div>
-            )}
-          </div>
+            </section>
+          ) : null}
 
-          <button
-            disabled={isLoading}
-            onClick={() => {
-              const params = new URLSearchParams({
-                pair: selectedPair,
-                type: optionType,
-                notional: String(parsedNotional),
-                strike: String(parsedStrike),
-                expiry: expiryDate,
-                indicative: String(indicativePrice),
-              });
-              router.push(`/app/review?${params.toString()}`);
-            }}
-            className="w-full rounded-lg border border-[#0F172A] bg-[#0B1220] py-2.5 text-[14px] font-bold leading-none text-white shadow-[0_8px_16px_rgba(15,23,42,0.28)] transition hover:bg-[#070D18] active:bg-[#070D18] disabled:opacity-70"
-          >
-            {isLoading ? "Loading..." : "Next Step"}
-          </button>
-        </div>
-        </div>
+          {errorMessage ? (
+            <div className="rounded-[9px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2 text-[11px] text-[var(--inst-text)]">
+              {errorMessage}
+            </div>
+          ) : null}
+        </SurfaceCard>
       </div>
     </div>
   );
