@@ -24,8 +24,9 @@ export function AppLayout({
 }: AppLayoutProps) {
   return (
     <div className={cn("min-h-screen bg-[#f3f3f4] text-[#15151b]", className)}>
-      <header className={headerHeightClass}>
-        <div className={cn(containerClass, "relative flex h-full items-center")}>
+      <div className="flex min-h-screen flex-col">
+        <header className={cn(headerHeightClass, "shrink-0")}>
+          <div className={cn(containerClass, "relative flex h-full items-center")}>
           <Link href={logoLink} className="shrink-0">
             <div className="flex items-center gap-2">
               <div className="relative -mr-6 h-[31px] w-[114px]">
@@ -37,16 +38,17 @@ export function AppLayout({
           </Link>
 
           {headerCenter ? (
-            <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
+            <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[6px]">
               <div className="pointer-events-auto">{headerCenter}</div>
             </div>
           ) : null}
 
           {headerRight ? <div className="ml-auto">{headerRight}</div> : null}
-        </div>
-      </header>
+          </div>
+        </header>
 
-      {children}
+        {children}
+      </div>
     </div>
   );
 }
@@ -60,9 +62,9 @@ interface ContentLayoutProps {
 }
 
 const contentVariantClass: Record<ContentVariant, string> = {
-  default: "pt-6 pb-12",
-  rfq: "flex justify-center pt-6 pb-10",
-  auth: "flex items-center justify-center pt-2 pb-12",
+  default: "pt-4 pb-8",
+  rfq: "flex justify-center pt-4 pb-8",
+  auth: "flex flex-1 items-start justify-center pt-14 pb-12",
 };
 
 export function ContentLayout({ children, variant = "default", className }: ContentLayoutProps) {
@@ -70,7 +72,7 @@ export function ContentLayout({ children, variant = "default", className }: Cont
     <main
       className={cn(
         containerClass,
-        "min-h-[calc(100vh-4rem)]",
+        "flex-1",
         contentVariantClass[variant],
         className
       )}
@@ -89,8 +91,8 @@ interface CardWrapperProps {
 }
 
 const cardWidthClass: Record<CardSize, string> = {
-  ticket: "max-w-[460px]",
-  auth: "max-w-[420px]",
+  ticket: "max-w-[380px]",
+  auth: "max-w-[340px]",
 };
 
 export function CardWrapper({ children, size = "ticket", className }: CardWrapperProps) {

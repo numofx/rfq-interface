@@ -24,12 +24,12 @@ export default function HomePage() {
 
   const headerTabs =
     view !== "team" ? (
-      <div className="rounded-[18px] bg-[#e5e5e7] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
-        <div className="flex items-center gap-1 text-[18px] leading-none">
+      <div className="rounded-[12px] bg-[#e5e5e7] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+        <div className="flex items-center gap-1 text-[14px] leading-none">
           <button
             type="button"
             onClick={() => setView("login")}
-            className={`rounded-[14px] px-9 py-3 ${
+            className={`rounded-[10px] px-6 py-2 ${
               view === "login"
                 ? "bg-[#f5f5f6] font-semibold text-[#141419] shadow-sm"
                 : "font-medium text-[#666674]"
@@ -40,7 +40,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setView("signup")}
-            className={`rounded-[14px] px-9 py-3 ${
+            className={`rounded-[10px] px-6 py-2 ${
               view === "signup"
                 ? "bg-[#f5f5f6] font-semibold text-[#141419] shadow-sm"
                 : "font-medium text-[#666674]"
@@ -56,28 +56,28 @@ export default function HomePage() {
     <AppLayout headerCenter={headerTabs}>
       {view === "team" ? (
         <>
-          <ContentLayout variant="default" className="flex justify-center pt-10 pb-24">
-            <CardWrapper size="auth" className="max-w-[540px]">
-              <h1 className="mb-5 text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
+          <ContentLayout variant="default" className="flex justify-center pt-6 pb-16">
+            <CardWrapper size="auth" className="max-w-[420px]">
+              <h1 className="mb-4 text-[24px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
                 Create a team
               </h1>
 
-              <p className="mb-8 max-w-[520px] text-[17px] leading-[1.4] text-[#9a9ba7]">
+              <p className="mb-6 max-w-[520px] text-[13px] leading-[1.4] text-[#9a9ba7]">
                 You&apos;re creating a team on Numo. You may invite your teammates to collaborate with you after signup.
               </p>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <input
                   type="text"
                   placeholder="Enter team name"
-                  className="h-[56px] w-full rounded-[16px] border border-[#e7e7ea] bg-[#e8e8eb] px-4 text-[16px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                  className="h-[44px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                 />
 
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setIsBusinessMenuOpen((prev) => !prev)}
-                    className={`flex h-[56px] w-full items-center justify-between rounded-[16px] px-4 text-[16px] font-medium focus:outline-none ${
+                    className={`flex h-[44px] w-full items-center justify-between rounded-[12px] px-3 text-[13px] font-medium focus:outline-none ${
                       businessType ? "text-[#202026]" : "text-[#9697a4]"
                     }`}
                   >
@@ -90,7 +90,7 @@ export default function HomePage() {
                     </span>
                     <svg
                       viewBox="0 0 24 24"
-                      className={`h-5 w-5 transition-transform ${isBusinessMenuOpen ? "rotate-180" : ""}`}
+                      className={`h-4 w-4 transition-transform ${isBusinessMenuOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
@@ -103,8 +103,8 @@ export default function HomePage() {
                   </button>
 
                   {isBusinessMenuOpen ? (
-                    <div className="absolute left-0 top-[62px] z-20 w-[450px] rounded-[26px] bg-[#f4f4f5] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
-                      <div className="space-y-6 text-[20px] font-medium text-[#111116]">
+                    <div className="absolute left-0 top-[50px] z-20 w-[360px] rounded-[16px] bg-[#f4f4f5] p-4 shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
+                      <div className="space-y-4 text-[14px] font-medium text-[#111116]">
                         <button
                           type="button"
                           onClick={() => {
@@ -164,7 +164,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setIsContactMenuOpen((prev) => !prev)}
-                    className={`flex h-[56px] w-full items-center justify-between rounded-[16px] px-4 text-[16px] font-medium focus:outline-none ${
+                    className={`flex h-[44px] w-full items-center justify-between rounded-[12px] px-3 text-[13px] font-medium focus:outline-none ${
                       contactMethod ? "text-[#202026]" : "text-[#9697a4]"
                     }`}
                   >
@@ -177,7 +177,7 @@ export default function HomePage() {
                     </span>
                     <svg
                       viewBox="0 0 24 24"
-                      className={`h-5 w-5 transition-transform ${isContactMenuOpen ? "rotate-180" : ""}`}
+                      className={`h-4 w-4 transition-transform ${isContactMenuOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
@@ -190,8 +190,8 @@ export default function HomePage() {
                   </button>
 
                   {isContactMenuOpen ? (
-                    <div className="absolute left-0 top-[62px] z-20 w-[540px] rounded-[26px] bg-[#f4f4f5] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
-                      <div className="space-y-6 text-[20px] font-medium text-[#111116]">
+                    <div className="absolute left-0 top-[50px] z-20 w-[380px] rounded-[16px] bg-[#f4f4f5] p-4 shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
+                      <div className="space-y-4 text-[14px] font-medium text-[#111116]">
                         <button
                           type="button"
                           onClick={() => {
@@ -225,14 +225,14 @@ export default function HomePage() {
                     value={contactValue}
                     onChange={(event) => setContactValue(event.target.value)}
                     placeholder={contactMethod === "email" ? "Enter your email" : "Enter phone number"}
-                    className="h-[56px] w-full rounded-[16px] border-2 border-[#141419] bg-[#ececef] px-4 text-[16px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                    className="h-[44px] w-full rounded-[12px] border-2 border-[#141419] bg-[#ececef] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                   />
                 ) : null}
 
                 <button
                   type="button"
                   onClick={() => router.push("/app")}
-                  className="h-[56px] w-full rounded-[16px] bg-gradient-to-r from-[#111118] to-[#171722] text-[16px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
+                  className="h-[44px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[13px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
                 >
                   Finish Setup &rarr;
                 </button>
@@ -240,17 +240,17 @@ export default function HomePage() {
             </CardWrapper>
           </ContentLayout>
 
-          <footer className="pointer-events-none fixed inset-x-0 bottom-0 px-6 pb-6">
+          <footer className="pointer-events-none fixed inset-x-0 bottom-0 px-4 pb-4">
             <div className={`${containerClass} relative flex items-end justify-between text-[#8f9099]`}>
-              <div className="pointer-events-auto text-left text-[14px] leading-[1.2]">
+              <div className="pointer-events-auto text-left text-[11px] leading-[1.2]">
                 <p>Logged in as:</p>
-                <p className="mt-1 text-[13px] font-semibold text-[#141419]">
+                <p className="mt-1 text-[11px] font-semibold text-[#141419]">
                   {signupEmail.trim() || "r.leifke@gmail.com"}
                 </p>
               </div>
 
-              <div className="pointer-events-auto absolute left-1/2 -translate-x-1/2 text-[12px]">
-                <div className="flex items-center gap-4">
+              <div className="pointer-events-auto absolute left-1/2 -translate-x-1/2 text-[10px]">
+                <div className="flex items-center gap-3">
                   <a href="#" className="hover:text-[#70707a]">
                     Privacy Policy
                   </a>
@@ -261,7 +261,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <button type="button" className="pointer-events-auto text-[18px] text-[#141419]">
+              <button type="button" className="pointer-events-auto text-[14px] text-[#141419]">
                 Log out
               </button>
             </div>
@@ -269,135 +269,139 @@ export default function HomePage() {
         </>
       ) : (
         <ContentLayout variant="auth">
-          <CardWrapper size="auth">
+          <CardWrapper size="auth" className="max-w-sm">
             {view === "login" ? (
               <>
-                <h1 className="mb-6 text-[30px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
-                  Log in
-                </h1>
+                <div className="space-y-5">
+                  <h1 className="text-[26px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
+                    Log in
+                  </h1>
 
-                <form className="space-y-3" aria-label="Login form" onSubmit={(event) => event.preventDefault()}>
-                  <div>
-                    <label htmlFor="email" className="sr-only">
-                      Email address
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email address"
-                      className="h-[54px] w-full rounded-[16px] border border-[#e7e7ea] bg-[#e8e8eb] px-4 text-[16px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="password" className="sr-only">
-                      Password
-                    </label>
-                    <div className="flex h-[54px] items-center rounded-[16px] border-2 border-[#141419] bg-[#ececef] px-4">
+                  <form className="space-y-4" aria-label="Login form" onSubmit={(event) => event.preventDefault()}>
+                    <div>
+                      <label htmlFor="email" className="sr-only">
+                        Email address
+                      </label>
                       <input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        className="h-full w-full bg-transparent text-[16px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        className="ml-3 flex h-[36px] w-[36px] items-center justify-center rounded-[12px] bg-[#f7f7f7]"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="h-[15px] w-[15px] text-[#1c1c21]"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
-                          <circle cx="12" cy="12" r="3" />
-                          {showPassword ? <path d="M3 3l18 18" /> : null}
-                        </svg>
-                      </button>
                     </div>
-                  </div>
 
-                  <button
-                    type="submit"
-                    className="h-[54px] w-full rounded-[16px] bg-gradient-to-r from-[#111118] to-[#171722] text-[18px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
-                  >
-                    Log in &rarr;
-                  </button>
-                </form>
+                    <div>
+                      <label htmlFor="password" className="sr-only">
+                        Password
+                      </label>
+                      <div className="flex h-[42px] items-center rounded-[12px] border-2 border-[#141419] bg-[#ececef] px-3">
+                        <input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          className="h-full w-full bg-transparent text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="ml-2 flex h-[28px] w-[28px] items-center justify-center rounded-[9px] bg-[#f7f7f7]"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-[12px] w-[12px] text-[#1c1c21]"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+                            <circle cx="12" cy="12" r="3" />
+                            {showPassword ? <path d="M3 3l18 18" /> : null}
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
 
-                <p className="mt-12 text-center text-[19px] text-[#8f9099]">Forgot your password?</p>
+                    <button
+                      type="submit"
+                      className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
+                    >
+                      Log in &rarr;
+                    </button>
+                  </form>
+
+                  <p className="text-center text-[14px] text-[#8f9099]">Forgot your password?</p>
+                </div>
               </>
             ) : (
               <>
-                <h1 className="mb-6 text-[30px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
-                  Create an account
-                </h1>
+                <div className="space-y-5">
+                  <h1 className="text-[26px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
+                    Create an account
+                  </h1>
 
-                <form className="space-y-3" aria-label="Sign up form" onSubmit={handleSignupSubmit}>
-                  <div className="grid grid-cols-2 gap-3">
+                  <form className="space-y-4" aria-label="Sign up form" onSubmit={handleSignupSubmit}>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="first-name" className="sr-only">
+                          First name
+                        </label>
+                        <input
+                          id="first-name"
+                          type="text"
+                          placeholder="Enter your first name"
+                          className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="last-name" className="sr-only">
+                          Last name
+                        </label>
+                        <input
+                          id="last-name"
+                          type="text"
+                          placeholder="Enter your last name"
+                          className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <label htmlFor="first-name" className="sr-only">
-                        First name
+                      <label htmlFor="signup-email" className="sr-only">
+                        Email address
                       </label>
                       <input
-                        id="first-name"
-                        type="text"
-                        placeholder="Enter your first name"
-                        className="h-[54px] w-full rounded-[16px] border border-[#e7e7ea] bg-[#e8e8eb] px-4 text-[16px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        id="signup-email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        value={signupEmail}
+                        onChange={(event) => setSignupEmail(event.target.value)}
+                        className="h-[42px] w-full rounded-[12px] border-2 border-[#141419] bg-[#ececef] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                       />
                     </div>
-                    <div>
-                      <label htmlFor="last-name" className="sr-only">
-                        Last name
-                      </label>
-                      <input
-                        id="last-name"
-                        type="text"
-                        placeholder="Enter your last name"
-                        className="h-[54px] w-full rounded-[16px] border border-[#e7e7ea] bg-[#e8e8eb] px-4 text-[16px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label htmlFor="signup-email" className="sr-only">
-                      Email address
-                    </label>
-                    <input
-                      id="signup-email"
-                      type="email"
-                      placeholder="Enter your email address"
-                      value={signupEmail}
-                      onChange={(event) => setSignupEmail(event.target.value)}
-                      className="h-[54px] w-full rounded-[16px] border-2 border-[#141419] bg-[#ececef] px-4 text-[16px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
-                    />
-                  </div>
+                    <button
+                      type="submit"
+                      className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
+                    >
+                      Continue &rarr;
+                    </button>
+                  </form>
 
-                  <button
-                    type="submit"
-                    className="h-[54px] w-full rounded-[16px] bg-gradient-to-r from-[#111118] to-[#171722] text-[18px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
-                  >
-                    Continue &rarr;
-                  </button>
-                </form>
-
-                <p className="mt-12 text-center text-[19px] text-[#8f9099]">
-                  Do you have an account?{" "}
-                  <button type="button" onClick={() => setView("login")} className="font-semibold text-[#131318]">
-                    Login
-                  </button>
-                </p>
+                  <p className="text-center text-[14px] text-[#8f9099]">
+                    Do you have an account?{" "}
+                    <button type="button" onClick={() => setView("login")} className="font-semibold text-[#131318]">
+                      Login
+                    </button>
+                  </p>
+                </div>
               </>
             )}
 
-            <div className="mt-8 text-center text-[15px] leading-[1.35] text-[#8f9099]">
+            <div className="mt-6 text-center text-[12px] leading-[1.35] text-[#8f9099]">
               <p>
                 This site is protected by reCAPTCHA and the
                 <br />
@@ -405,7 +409,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="mt-6 flex justify-center gap-4 text-[14px] text-[#8f9099]">
+            <div className="mt-4 flex justify-center gap-3 text-[12px] text-[#8f9099]">
               <a href="#" className="hover:text-[#70707a]">
                 Privacy Policy
               </a>
