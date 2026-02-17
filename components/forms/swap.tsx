@@ -464,16 +464,17 @@ export function ForwardInterface() {
 
   return (
     <>
-      <SurfaceCard className="space-y-4">
-        <section className="space-y-2.5">
+      <SurfaceCard className="space-y-2 p-2 sm:p-2.5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+        <section className="space-y-1">
             <div>
               <FieldLabel htmlFor="pair">Pair</FieldLabel>
               <DropdownSelect
                 value={pair}
                 options={pairOptions}
                 onChange={setPair}
+                className="[&_button]:h-[36px]"
               />
-              <HelperText className="mt-1 text-[11px]">
+              <HelperText className="mt-0.5 text-[11px]">
                 Spot:{" "}
                 <span className="text-[var(--inst-text)]">
                   {hasValidSpot ? spot.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—"}
@@ -489,11 +490,11 @@ export function ForwardInterface() {
                 onChange={setOptionType}
                 options={optionOptions}
                 className="grid-cols-2"
-                optionClassName="h-7.5"
+                optionClassName="h-6.5"
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
               <div>
                 <FieldLabel htmlFor="expiry">Expiry</FieldLabel>
                 <div ref={calendarRef} className="relative">
@@ -504,7 +505,7 @@ export function ForwardInterface() {
                       setCalendarMonth(parseIsoDate(expiryDate));
                       setIsCalendarOpen((prev) => !prev);
                     }}
-                    className="flex h-[44px] w-full items-center justify-between rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-[14px] text-[var(--inst-text)]"
+                    className="flex h-[36px] w-full items-center justify-between rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-[14px] text-[var(--inst-text)]"
                   >
                     <span>{formatDateInput(expiryDate)}</span>
                     <Calendar className="h-4 w-4 text-[var(--inst-muted)]" />
@@ -591,7 +592,7 @@ export function ForwardInterface() {
                     </div>
                   ) : null}
                 </div>
-                <HelperText className="mt-1 text-[11px]">
+                <HelperText className="mt-0.5 text-[11px]">
                   {typeof expiryCountdownDays === "number" ? `${expiryCountdownDays} days` : "—"}
                 </HelperText>
               </div>
@@ -603,13 +604,14 @@ export function ForwardInterface() {
                   value={strike}
                   onChange={(event) => setStrike(event.target.value)}
                   placeholder="2,200.00"
+                  className="[&]:h-[36px]"
                   rightAdornment={
                     <span className="whitespace-nowrap text-[9px] leading-none font-semibold text-[var(--inst-muted)]">
                       {quoteCurrency} per {baseCurrency}
                     </span>
                   }
                 />
-                <HelperText className="mt-1 text-[11px]">{moneyness}</HelperText>
+                <HelperText className="mt-0.5 text-[11px]">{moneyness}</HelperText>
               </div>
             </div>
 
@@ -620,6 +622,7 @@ export function ForwardInterface() {
                 value={notional}
                 onChange={(event) => setNotional(event.target.value)}
                 placeholder="10,000"
+                className="[&]:h-[36px]"
                 leftAdornment={<span className="text-[14px]">$</span>}
                 rightAdornment={
                   <span className="text-[10px] font-semibold text-[var(--inst-muted)]">{baseCurrency}</span>
@@ -627,7 +630,7 @@ export function ForwardInterface() {
               />
             </div>
 
-            <div className="border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2 text-[11px] text-[var(--inst-muted)]">
+            <div className="border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-1.5 text-[11px] text-[var(--inst-muted)]">
               <div className="flex items-center justify-between">
                 <span>Indicative all-in premium</span>
                 <span>Indicative</span>
@@ -644,8 +647,8 @@ export function ForwardInterface() {
               </div>
             </div>
 
-            <PrimaryButton type="button" onClick={requestQuotes} className="h-[42px]">
-              Request quotes
+            <PrimaryButton type="button" onClick={requestQuotes} className="h-[36px]">
+              Request Quote
             </PrimaryButton>
             <HelperText className="text-[11px]">Quotes valid for 30s after response.</HelperText>
 
@@ -656,9 +659,9 @@ export function ForwardInterface() {
             >
               Clear
             </button>
-          </section>
+        </section>
 
-          <section className="space-y-2 border-t border-[var(--inst-border)] pt-3">
+          <section className="space-y-1 border-t border-[var(--inst-border)] pt-1.5">
             <div className="flex items-center justify-between">
               <div className="text-[12px] font-semibold text-[var(--inst-label)]">Quotes</div>
               {(state === "REQUESTING" || state === "QUOTES_LIVE" || state === "QUOTE_SELECTED") &&
@@ -671,7 +674,7 @@ export function ForwardInterface() {
             ) : null}
 
             {state === "REQUESTING" ? (
-              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-3 text-[12px] text-[var(--inst-muted)]">
+              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-[12px] text-[var(--inst-muted)]">
                 <div className="flex items-center gap-2">
                   <Spinner />
                   <span>No quotes yet.</span>
@@ -681,7 +684,7 @@ export function ForwardInterface() {
 
             {(state === "QUOTES_LIVE" || state === "QUOTE_SELECTED" || state === "SIGNING" || state === "PENDING" || state === "DONE") &&
             sortedQuotes.length === 0 ? (
-              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-3 text-[12px] text-[var(--inst-muted)]">
+              <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-[12px] text-[var(--inst-muted)]">
                 No quotes yet.
               </div>
             ) : null}
@@ -691,7 +694,7 @@ export function ForwardInterface() {
               return (
                 <div
                   key={quote.id}
-                  className={`rounded-[12px] border px-3 py-3 ${
+                  className={`rounded-[12px] border px-3 py-2.5 ${
                     isSelected
                       ? "border-[var(--inst-primary-start)] bg-[var(--inst-control-active)]"
                       : "border-[var(--inst-border)] bg-[var(--inst-input)]"
@@ -709,7 +712,7 @@ export function ForwardInterface() {
                     </div>
                   </div>
 
-                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="mt-1.5 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[11px] text-[var(--inst-muted)]">TTL: {windowRemaining}s</span>
                     <button
                       type="button"
@@ -728,7 +731,7 @@ export function ForwardInterface() {
           </section>
 
           {selectedQuote ? (
-            <section className="space-y-3 rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] p-3">
+            <section className="space-y-1 rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] p-1.5">
               <div className="text-[11px] font-semibold tracking-[0.04em] text-[var(--inst-muted)]">CONFIRMATION</div>
 
               <div className="grid grid-cols-2 gap-y-1 text-[12px]">

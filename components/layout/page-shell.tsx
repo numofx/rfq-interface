@@ -61,7 +61,7 @@ interface ContentLayoutProps {
 
 const contentVariantClass: Record<ContentVariant, string> = {
   default: "pt-6 pb-12",
-  rfq: "flex justify-center pt-0 pb-10",
+  rfq: "flex justify-center pt-6 pb-10",
   auth: "flex items-center justify-center pt-2 pb-12",
 };
 
