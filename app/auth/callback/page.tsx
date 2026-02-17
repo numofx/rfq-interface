@@ -13,6 +13,11 @@ export default function AuthCallbackPage() {
     const errorDescription = searchParams.get("error_description");
 
     const finalize = async () => {
+      if (!supabase) {
+        router.replace("/?verified=0&error=Missing%20Supabase%20configuration");
+        return;
+      }
+
       if (code) {
         await supabase.auth.exchangeCodeForSession(code);
         router.replace("/?verified=1");

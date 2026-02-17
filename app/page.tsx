@@ -29,6 +29,10 @@ export default function HomePage() {
   useEffect(() => {
     const verified = searchParams.get("verified");
     if (!verified) return;
+    if (!supabase) {
+      setAuthError("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
     supabase.auth
       .getSession()
       .then(({ data }) => {
@@ -52,6 +56,10 @@ export default function HomePage() {
     event.preventDefault();
     setAuthError("");
     setStatusMessage("");
+    if (!supabase) {
+      setAuthError("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
 
     if (!signupEmail.trim()) {
       setAuthError("Please enter your email address.");
@@ -86,6 +94,10 @@ export default function HomePage() {
 
   const handleVerificationContinue = async () => {
     setAuthError("");
+    if (!supabase) {
+      setAuthError("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
     const { data } = await supabase.auth.getSession();
     if (data.session) {
       setView("team");
@@ -97,6 +109,10 @@ export default function HomePage() {
   const handleResendVerification = async () => {
     setAuthError("");
     setStatusMessage("");
+    if (!supabase) {
+      setAuthError("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
     if (!signupEmail.trim()) {
       setAuthError("Please enter your email address.");
       return;
