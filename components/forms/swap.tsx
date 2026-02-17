@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Calendar } from "lucide-react";
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 import {
   DropdownSelect,
   FieldLabel,
@@ -34,8 +36,39 @@ interface Quote {
   spreadBps: number;
 }
 
-const QUOTE_WINDOW_SECONDS = 8;
+const QUOTE_WINDOW_SECONDS = 30;
 const REQUEST_DELAY_MS = 1400;
+const ATM_THRESHOLD = 0.0025;
+const CHAINLINK_NGN_USD_FEED_BASE = "0xdfbb5Cbc88E382de007bfe6CE99C388176ED80aD";
+const DEFAULT_SPOT_BY_PAIR: Partial<Record<Pair, number>> = {
+  "USDT/KESm": 130,
+};
+const chainlinkAggregatorV3Abi = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+  {
+    type: "function",
+    name: "latestRoundData",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "roundId", type: "uint80" },
+      { name: "answer", type: "int256" },
+      { name: "startedAt", type: "uint256" },
+      { name: "updatedAt", type: "uint256" },
+      { name: "answeredInRound", type: "uint80" },
+    ],
+  },
+] as const;
+const basePublicClient = createPublicClient({
+  chain: base,
+  transport: http("https://mainnet.base.org"),
+});
 
 const pairs = [
   { id: "usdc-cngn", label: "USDC/cNGN" },
@@ -188,6 +221,7 @@ export function ForwardInterface() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => parseIsoDate(expiryDate));
+  const [usdcCngnSpot, setUsdcCngnSpot] = useState<number | null>(null);
   const calendarRef = useRef<HTMLDivElement | null>(null);
 
   const pairOptions = useMemo(
@@ -228,12 +262,30 @@ export function ForwardInterface() {
   const parsedNotional = Number(notional.replace(/,/g, "")) || 0;
   const parsedStrike = Number(strike.replace(/,/g, "")) || 0;
   const [baseCurrency, quoteCurrency] = pair.split("/") as [string, string];
+  const spot = pair === "USDC/cNGN" ? usdcCngnSpot : DEFAULT_SPOT_BY_PAIR[pair];
+  const hasValidSpot = typeof spot === "number" && Number.isFinite(spot) && spot > 0;
   const displayExpiry = parseIsoDate(expiryDate).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
   const minDateIso = toIsoDate(new Date());
+  const expiryCountdownDays = useMemo(() => {
+    if (!expiryDate) return null;
+    const diffMs = parseIsoDate(expiryDate).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  }, [expiryDate]);
+  const moneyness = useMemo(() => {
+    if (!hasValidSpot || !parsedStrike) return "—";
+    const ratio = parsedStrike / spot - 1;
+    const absRatio = Math.abs(ratio);
+    if (absRatio < ATM_THRESHOLD) return "ATM";
+    const pct = `${(absRatio * 100).toFixed(2)}%`;
+    if (optionType === "call") {
+      return `${pct} ${parsedStrike > spot ? "OTM" : "ITM"}`;
+    }
+    return `${pct} ${parsedStrike < spot ? "OTM" : "ITM"}`;
+  }, [hasValidSpot, optionType, parsedStrike, spot]);
 
   const sortedQuotes = useMemo(() => bestPriceFirst(quotes), [quotes]);
   const selectedQuote = useMemo(
@@ -248,6 +300,53 @@ export function ForwardInterface() {
     const contracts = parsedNotional / parsedStrike;
     return Number((contracts * 1.82).toFixed(2));
   }, [parsedNotional, parsedStrike]);
+  const hasRequestedQuotes = state !== "IDLE";
+  const showIndicativePremium = hasRequestedQuotes && parsedNotional > 0 && parsedStrike > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchUsdcCngnSpot = async () => {
+      try {
+        const [decimals, latestRoundData] = await Promise.all([
+          basePublicClient.readContract({
+            address: CHAINLINK_NGN_USD_FEED_BASE,
+            abi: chainlinkAggregatorV3Abi,
+            functionName: "decimals",
+          }),
+          basePublicClient.readContract({
+            address: CHAINLINK_NGN_USD_FEED_BASE,
+            abi: chainlinkAggregatorV3Abi,
+            functionName: "latestRoundData",
+          }),
+        ]);
+
+        const answer = latestRoundData[1];
+        if (answer <= 0n) {
+          if (!cancelled) setUsdcCngnSpot(null);
+          return;
+        }
+
+        const ngnPerUsd = 1 / (Number(answer) / 10 ** Number(decimals));
+        if (!Number.isFinite(ngnPerUsd) || ngnPerUsd <= 0) {
+          if (!cancelled) setUsdcCngnSpot(null);
+          return;
+        }
+
+        if (!cancelled) setUsdcCngnSpot(ngnPerUsd);
+      } catch {
+        if (!cancelled) setUsdcCngnSpot(null);
+      }
+    };
+
+    void fetchUsdcCngnSpot();
+    const intervalId = window.setInterval(fetchUsdcCngnSpot, 30_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     if (state !== "REQUESTING" && state !== "QUOTES_LIVE" && state !== "QUOTE_SELECTED") {
@@ -364,15 +463,9 @@ export function ForwardInterface() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--inst-bg)] px-3 py-7">
-      <div className="mx-auto w-full max-w-[430px]">
-        <h1 className="text-[22px] leading-none font-semibold tracking-[-0.02em] text-[var(--inst-text)]">RFQ</h1>
-        <HelperText className="mt-1.5 max-w-[420px]">
-          Request dealer quotes, accept the best price, then execute the trade.
-        </HelperText>
-
-        <SurfaceCard className="mt-5 space-y-4.5">
-          <section className="space-y-3">
+    <>
+      <SurfaceCard className="space-y-4">
+        <section className="space-y-2.5">
             <div>
               <FieldLabel htmlFor="pair">Pair</FieldLabel>
               <DropdownSelect
@@ -380,6 +473,13 @@ export function ForwardInterface() {
                 options={pairOptions}
                 onChange={setPair}
               />
+              <HelperText className="mt-1 text-[11px]">
+                Spot:{" "}
+                <span className="text-[var(--inst-text)]">
+                  {hasValidSpot ? spot.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—"}
+                </span>{" "}
+                {quoteCurrency} per {baseCurrency}
+              </HelperText>
             </div>
 
             <div>
@@ -393,7 +493,7 @@ export function ForwardInterface() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div>
                 <FieldLabel htmlFor="expiry">Expiry</FieldLabel>
                 <div ref={calendarRef} className="relative">
@@ -491,6 +591,9 @@ export function ForwardInterface() {
                     </div>
                   ) : null}
                 </div>
+                <HelperText className="mt-1 text-[11px]">
+                  {typeof expiryCountdownDays === "number" ? `${expiryCountdownDays} days` : "—"}
+                </HelperText>
               </div>
 
               <div>
@@ -506,6 +609,7 @@ export function ForwardInterface() {
                     </span>
                   }
                 />
+                <HelperText className="mt-1 text-[11px]">{moneyness}</HelperText>
               </div>
             </div>
 
@@ -528,12 +632,22 @@ export function ForwardInterface() {
                 <span>Indicative all-in premium</span>
                 <span>Indicative</span>
               </div>
-              <div className="mt-1 text-[16px] font-semibold text-[var(--inst-text)]">{toMoney(indicativePremium)}</div>
+              <div className="mt-1 text-[16px] font-semibold text-[var(--inst-text)]">
+                {showIndicativePremium ? toMoney(indicativePremium) : "—"}
+              </div>
+              <div className="mt-1">
+                {state === "REQUESTING"
+                  ? "Requesting quotes..."
+                  : showIndicativePremium
+                    ? `${((indicativePremium / parsedNotional) * 100).toFixed(3)}% of notional (${baseCurrency})`
+                    : "Awaiting quote"}
+              </div>
             </div>
 
-            <PrimaryButton type="button" onClick={requestQuotes}>
+            <PrimaryButton type="button" onClick={requestQuotes} className="h-[42px]">
               Request quotes
             </PrimaryButton>
+            <HelperText className="text-[11px]">Quotes valid for 30s after response.</HelperText>
 
             <button
               type="button"
@@ -544,7 +658,7 @@ export function ForwardInterface() {
             </button>
           </section>
 
-          <section className="space-y-2.5 border-t border-[var(--inst-border)] pt-3">
+          <section className="space-y-2 border-t border-[var(--inst-border)] pt-3">
             <div className="flex items-center justify-between">
               <div className="text-[12px] font-semibold text-[var(--inst-label)]">Quotes</div>
               {(state === "REQUESTING" || state === "QUOTES_LIVE" || state === "QUOTE_SELECTED") &&
@@ -552,6 +666,9 @@ export function ForwardInterface() {
                 <span className="text-[11px] text-[var(--inst-muted)]">Expires in {windowRemaining}s</span>
               ) : null}
             </div>
+            {state === "REQUESTING" ? (
+              <HelperText className="text-[11px]">Request sent to {makers.length} dealers...</HelperText>
+            ) : null}
 
             {state === "REQUESTING" ? (
               <div className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-3 text-[12px] text-[var(--inst-muted)]">
@@ -640,6 +757,7 @@ export function ForwardInterface() {
                   <PrimaryButton
                     type="button"
                     onClick={executeTrade}
+                    className="h-[42px]"
                     disabled={state === "SIGNING" || state === "PENDING" || state === "DONE"}
                   >
                     {state === "SIGNING"
@@ -661,8 +779,7 @@ export function ForwardInterface() {
               {errorMessage}
             </div>
           ) : null}
-        </SurfaceCard>
-      </div>
-    </div>
+      </SurfaceCard>
+    </>
   );
 }
