@@ -6,6 +6,7 @@ import { AppLayout, CardWrapper, ContentLayout, containerClass } from "@/compone
 import { supabase } from "@/lib/supabase/client";
 
 type View = "login" | "signup" | "password" | "verify" | "team";
+type LoginErrorField = "email" | "password" | null;
 
 const getReadableAuthError = (message: string) => {
   const normalized = message.toLowerCase();
@@ -43,6 +44,23 @@ const getAuthRedirectUrl = () => {
   return `${origin}/auth/callback`;
 };
 
+const checkEmailExists = async (email: string) => {
+  const response = await fetch("/api/auth/check-email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to check email.");
+  }
+
+  const payload = (await response.json()) as { exists?: boolean };
+  return Boolean(payload.exists);
+};
+
 export default function HomePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -61,8 +79,12 @@ export default function HomePage() {
   const [contactValue, setContactValue] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [loginErrorField, setLoginErrorField] = useState<LoginErrorField>(null);
+  const [loginErrorMessage, setLoginErrorMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isAuthBusy, setIsAuthBusy] = useState(false);
+  const isLoginEmailError = view === "login" && loginErrorField === "email";
+  const isLoginPasswordError = view === "login" && loginErrorField === "password";
 
   useEffect(() => {
     const verified = searchParams.get("verified");
@@ -128,6 +150,8 @@ export default function HomePage() {
   const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setAuthError("");
+    setLoginErrorField(null);
+    setLoginErrorMessage("");
     setStatusMessage("");
     if (!supabase) {
       setAuthError("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
@@ -135,11 +159,13 @@ export default function HomePage() {
     }
 
     if (!loginEmail.trim()) {
-      setAuthError("Please enter your email address.");
+      setLoginErrorField("email");
+      setLoginErrorMessage("Please enter your email address.");
       return;
     }
     if (!loginPassword.trim()) {
-      setAuthError("Please enter your password.");
+      setLoginErrorField("password");
+      setLoginErrorMessage("Please enter your password.");
       return;
     }
 
@@ -151,7 +177,42 @@ export default function HomePage() {
       });
 
       if (error) {
-        setAuthError(getReadableAuthError(error.message));
+        const code = (error.code ?? "").toLowerCase();
+        const message = error.message.toLowerCase();
+        const isInvalidEmail =
+          code.includes("email_not_found") ||
+          code.includes("user_not_found") ||
+          message.includes("email not found") ||
+          message.includes("user not found") ||
+          message.includes("no user");
+        const isInvalidPassword =
+          code === "invalid_credentials" ||
+          code === "invalid_grant" ||
+          message.includes("invalid login credentials") ||
+          message.includes("invalid credentials") ||
+          message.includes("invalid password");
+
+        if (isInvalidEmail) {
+          setLoginErrorField("email");
+          setLoginErrorMessage("Invalid email address");
+        } else if (isInvalidPassword) {
+          try {
+            const exists = await checkEmailExists(loginEmail.trim());
+            if (exists) {
+              setLoginErrorField("password");
+              setLoginErrorMessage("Invalid password");
+            } else {
+              setLoginErrorField("email");
+              setLoginErrorMessage("Invalid email address");
+            }
+          } catch {
+            // When lookup is unavailable, default to password error on invalid credentials.
+            setLoginErrorField("password");
+            setLoginErrorMessage("Invalid password");
+          }
+        } else {
+          setAuthError(getReadableAuthError(error.message));
+        }
         if (process.env.NODE_ENV !== "production") {
           console.error("Supabase signIn error:", error);
         }
@@ -160,7 +221,8 @@ export default function HomePage() {
 
       router.push("/app");
     } catch (error) {
-      setAuthError("Unexpected error while logging in. Please try again.");
+      setLoginErrorField("password");
+      setLoginErrorMessage("Invalid password");
       if (process.env.NODE_ENV !== "production") {
         console.error("Unexpected signIn failure:", error);
       }
@@ -531,22 +593,37 @@ export default function HomePage() {
                         type="email"
                         placeholder="Enter your email address"
                         value={loginEmail}
-                        onChange={(event) => setLoginEmail(event.target.value)}
-                        className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        onChange={(event) => {
+                          setLoginEmail(event.target.value);
+                          setLoginErrorField(null);
+                          setLoginErrorMessage("");
+                        }}
+                        className={`h-[42px] w-full rounded-[12px] border-2 bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none ${
+                          isLoginEmailError ? "border-[#b42318]" : "border-[#e7e7ea]"
+                        }`}
                       />
+                      {isLoginEmailError ? <p className="mt-2 text-[12px] text-[#b42318]">{loginErrorMessage}</p> : null}
                     </div>
 
                     <div>
                       <label htmlFor="password" className="sr-only">
                         Password
                       </label>
-                      <div className="flex h-[42px] items-center rounded-[12px] border-2 border-[#141419] bg-[#ececef] px-3">
+                      <div
+                        className={`flex h-[42px] items-center rounded-[12px] border-2 bg-[#ececef] px-3 ${
+                          isLoginPasswordError ? "border-[#b42318]" : "border-[#141419]"
+                        }`}
+                      >
                         <input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
                           value={loginPassword}
-                          onChange={(event) => setLoginPassword(event.target.value)}
+                          onChange={(event) => {
+                            setLoginPassword(event.target.value);
+                            setLoginErrorField(null);
+                            setLoginErrorMessage("");
+                          }}
                           className="h-full w-full bg-transparent text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                         />
                         <button
@@ -571,6 +648,9 @@ export default function HomePage() {
                           </svg>
                         </button>
                       </div>
+                      {isLoginPasswordError ? (
+                        <p className="mt-2 text-[12px] text-[#b42318]">{loginErrorMessage}</p>
+                      ) : null}
                     </div>
 
                     <button
@@ -583,7 +663,6 @@ export default function HomePage() {
                   </form>
 
                   {statusMessage ? <p className="text-[12px] text-[#4b5d4b]">{statusMessage}</p> : null}
-                  {authError ? <p className="text-[12px] text-[#b42318]">{authError}</p> : null}
                   <button
                     type="button"
                     onClick={handleForgotPassword}
