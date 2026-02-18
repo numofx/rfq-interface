@@ -158,7 +158,7 @@ export function DropdownSelect<T extends string>({
       >
         <span className="flex items-center gap-2">
           {selected?.leading ? <span className="shrink-0">{selected.leading}</span> : null}
-          <span>{selected?.label ?? value}</span>
+          <span className="font-semibold">{selected?.label ?? value}</span>
           {selected?.trailing ? <span className="shrink-0">{selected.trailing}</span> : null}
         </span>
         <ChevronDown className={cn("h-4 w-4 text-[var(--inst-muted)] transition-transform", open && "rotate-180")} />
