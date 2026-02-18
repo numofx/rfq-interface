@@ -11,7 +11,7 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: "Numo: FX Options",
   description:
-    "Protect your business from currency volatility with Numo FX options. Flexible forward contracts for NGN, USD and more. Get instant quotes today.",
+    "Protect your business from currency volatility with Numo FX options.",
   icons: {
     apple: [
       {
