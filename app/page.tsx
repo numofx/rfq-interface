@@ -52,6 +52,8 @@ export default function HomePage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const [contactMethod, setContactMethod] = useState("");
@@ -86,6 +88,85 @@ export default function HomePage() {
     setAuthError("");
     setStatusMessage("");
     setView("password");
+  };
+
+  const handleForgotPassword = async () => {
+    setAuthError("");
+    setStatusMessage("");
+    if (!supabase) {
+      setAuthError("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
+    if (!loginEmail.trim()) {
+      setAuthError("Please enter your email address.");
+      return;
+    }
+
+    try {
+      setIsAuthBusy(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(loginEmail.trim(), {
+        redirectTo: `${window.location.origin}/auth/reset`,
+      });
+      if (error) {
+        setAuthError(getReadableAuthError(error.message));
+        if (process.env.NODE_ENV !== "production") {
+          console.error("Supabase resetPasswordForEmail error:", error);
+        }
+        return;
+      }
+      setStatusMessage("Password reset email sent. Check your inbox.");
+    } catch (error) {
+      setAuthError("Unexpected error while sending the reset email. Please try again.");
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Unexpected resetPasswordForEmail failure:", error);
+      }
+    } finally {
+      setIsAuthBusy(false);
+    }
+  };
+
+  const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAuthError("");
+    setStatusMessage("");
+    if (!supabase) {
+      setAuthError("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
+
+    if (!loginEmail.trim()) {
+      setAuthError("Please enter your email address.");
+      return;
+    }
+    if (!loginPassword.trim()) {
+      setAuthError("Please enter your password.");
+      return;
+    }
+
+    try {
+      setIsAuthBusy(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+
+      if (error) {
+        setAuthError(getReadableAuthError(error.message));
+        if (process.env.NODE_ENV !== "production") {
+          console.error("Supabase signIn error:", error);
+        }
+        return;
+      }
+
+      router.push("/app");
+    } catch (error) {
+      setAuthError("Unexpected error while logging in. Please try again.");
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Unexpected signIn failure:", error);
+      }
+    } finally {
+      setIsAuthBusy(false);
+    }
   };
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -440,7 +521,7 @@ export default function HomePage() {
                     Log in
                   </h1>
 
-                  <form className="space-y-4" aria-label="Login form" onSubmit={(event) => event.preventDefault()}>
+                  <form className="space-y-4" aria-label="Login form" onSubmit={handleLoginSubmit}>
                     <div>
                       <label htmlFor="email" className="sr-only">
                         Email address
@@ -449,6 +530,8 @@ export default function HomePage() {
                         id="email"
                         type="email"
                         placeholder="Enter your email address"
+                        value={loginEmail}
+                        onChange={(event) => setLoginEmail(event.target.value)}
                         className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                       />
                     </div>
@@ -462,6 +545,8 @@ export default function HomePage() {
                           id="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
+                          value={loginPassword}
+                          onChange={(event) => setLoginPassword(event.target.value)}
                           className="h-full w-full bg-transparent text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
                         />
                         <button
@@ -490,13 +575,22 @@ export default function HomePage() {
 
                     <button
                       type="submit"
+                      disabled={isAuthBusy}
                       className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
                     >
                       Log in &rarr;
                     </button>
                   </form>
 
-                  <p className="text-center text-[14px] text-[#8f9099]">Forgot your password?</p>
+                  {statusMessage ? <p className="text-[12px] text-[#4b5d4b]">{statusMessage}</p> : null}
+                  {authError ? <p className="text-[12px] text-[#b42318]">{authError}</p> : null}
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="w-full text-center text-[14px] text-[#8f9099] hover:text-[#6f707a]"
+                  >
+                    Forgot your password?
+                  </button>
                 </div>
               </>
             ) : view === "signup" ? (
