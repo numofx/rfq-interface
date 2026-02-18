@@ -7,6 +7,42 @@ import { supabase } from "@/lib/supabase/client";
 
 type View = "login" | "signup" | "password" | "verify" | "team";
 
+const getReadableAuthError = (message: string) => {
+  const normalized = message.toLowerCase();
+  const domainNotVerifiedMatch = message.match(/550 The ([^ ]+) domain is not verified/i);
+
+  if (domainNotVerifiedMatch) {
+    const failedDomain = domainNotVerifiedMatch[1];
+    return `Email sender domain mismatch: ${failedDomain} is not verified in Resend. In Supabase Auth email settings, use a sender from your verified domain/subdomain (for example @noreply.numofx.com), or verify ${failedDomain} in Resend.`;
+  }
+
+  if (normalized.includes("confirmation email") || normalized.includes("smtp")) {
+    return "We couldn't send the verification email. Check your Supabase Auth email provider/SMTP settings and try again.";
+  }
+  if (normalized.includes("rate limit")) {
+    return "Too many attempts. Please wait a minute and try again.";
+  }
+  if (normalized.includes("network")) {
+    return "Network error while reaching authentication services. Please try again.";
+  }
+
+  return message;
+};
+
+const getAuthRedirectUrl = () => {
+  const explicitRedirectUrl = process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL?.trim();
+  if (explicitRedirectUrl) {
+    return explicitRedirectUrl;
+  }
+
+  const origin = window.location.origin;
+  if (origin === "http://rfq.numofx.com") {
+    return "https://rfq.numofx.com/auth/callback";
+  }
+
+  return `${origin}/auth/callback`;
+};
+
 export default function HomePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,26 +106,37 @@ export default function HomePage() {
       return;
     }
 
-    setIsAuthBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email: signupEmail.trim(),
-      password: newPassword,
-      options: {
-        data: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
+    try {
+      setIsAuthBusy(true);
+      const { error } = await supabase.auth.signUp({
+        email: signupEmail.trim(),
+        password: newPassword,
+        options: {
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
+          emailRedirectTo: getAuthRedirectUrl(),
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setIsAuthBusy(false);
+      });
 
-    if (error) {
-      setAuthError(error.message);
-      return;
+      if (error) {
+        setAuthError(getReadableAuthError(error.message));
+        if (process.env.NODE_ENV !== "production") {
+          console.error("Supabase signUp error:", error);
+        }
+        return;
+      }
+
+      setView("verify");
+    } catch (error) {
+      setAuthError("Unexpected error while creating your account. Please try again.");
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Unexpected signUp failure:", error);
+      }
+    } finally {
+      setIsAuthBusy(false);
     }
-
-    setView("verify");
   };
 
   const handleVerificationContinue = async () => {
@@ -117,15 +164,25 @@ export default function HomePage() {
       setAuthError("Please enter your email address.");
       return;
     }
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: signupEmail.trim(),
-    });
-    if (error) {
-      setAuthError(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: signupEmail.trim(),
+      });
+      if (error) {
+        setAuthError(getReadableAuthError(error.message));
+        if (process.env.NODE_ENV !== "production") {
+          console.error("Supabase resend error:", error);
+        }
+        return;
+      }
+      setStatusMessage("Verification email sent.");
+    } catch (error) {
+      setAuthError("Unexpected error while resending verification email. Please try again.");
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Unexpected resend failure:", error);
+      }
     }
-    setStatusMessage("Verification email sent.");
   };
 
   const headerTabs =
