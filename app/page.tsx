@@ -105,10 +105,30 @@ export default function HomePage() {
       });
   }, [searchParams]);
 
-  const handleSignupSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSignupSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isAuthBusy) return;
     setAuthError("");
     setStatusMessage("");
+    if (!signupEmail.trim()) {
+      setAuthError("Please enter your email address.");
+      return;
+    }
+
+    try {
+      setIsAuthBusy(true);
+      const exists = await checkEmailExists(signupEmail.trim());
+      if (exists) {
+        setAuthError("This email is already registered. Please log in.");
+        return;
+      }
+    } catch {
+      setAuthError("We couldn't verify this email right now. If you already have an account, please log in.");
+      return;
+    } finally {
+      setIsAuthBusy(false);
+    }
+
     setView("password");
   };
 
@@ -718,17 +738,23 @@ export default function HomePage() {
                         type="email"
                         placeholder="Enter your email address"
                         value={signupEmail}
-                        onChange={(event) => setSignupEmail(event.target.value)}
-                        className="h-[42px] w-full rounded-[12px] border-2 border-[#141419] bg-[#ececef] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                        disabled={isAuthBusy}
+                        onChange={(event) => {
+                          setSignupEmail(event.target.value);
+                          setAuthError("");
+                        }}
+                        className={`h-[42px] w-full rounded-[12px] border-2 bg-[#ececef] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none ${
+                          authError ? "border-[#b42318]" : "border-[#141419]"
+                        }`}
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={isAuthBusy}
-                      className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
+                      className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {isAuthBusy ? "Creating..." : "Continue →"}
+                      {isAuthBusy ? "Checking..." : "Continue →"}
                     </button>
                   </form>
 
