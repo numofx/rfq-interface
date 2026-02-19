@@ -83,6 +83,9 @@ export default function HomePage() {
   const [loginErrorMessage, setLoginErrorMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isAuthBusy, setIsAuthBusy] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
   const isLoginEmailError = view === "login" && loginErrorField === "email";
   const isLoginPasswordError = view === "login" && loginErrorField === "password";
 
@@ -104,6 +107,39 @@ export default function HomePage() {
         setAuthError("We couldn’t confirm your session yet. Please try again.");
       });
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let isMounted = true;
+
+    supabase.auth
+      .getUser()
+      .then(({ data, error }) => {
+        if (!isMounted || error || !data.user) return;
+        const user = data.user;
+        const metadata = user.user_metadata as Record<string, unknown> | undefined;
+        const first = typeof metadata?.first_name === "string" ? metadata.first_name.trim() : "";
+        const last = typeof metadata?.last_name === "string" ? metadata.last_name.trim() : "";
+        const fullName = [first, last].filter(Boolean).join(" ");
+        const fallbackName = typeof metadata?.name === "string" ? metadata.name.trim() : "";
+
+        setAccountName(fullName || fallbackName);
+        setAccountEmail(user.email ?? "");
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    setIsAccountMenuOpen(false);
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setView("login");
+  };
 
   const handleSignupSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -378,8 +414,54 @@ export default function HomePage() {
       </div>
     ) : null;
 
+  const accountDisplayName = accountName || [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || "User";
+  const accountDisplayEmail = accountEmail || signupEmail.trim() || loginEmail.trim() || "No email available";
+  const headerRight =
+    view === "team" ? (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsAccountMenuOpen((prev) => !prev)}
+          className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#e9e9ec] text-[#15151b] shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] hover:bg-[#e2e2e6]"
+          aria-label="Open account menu"
+          aria-expanded={isAccountMenuOpen}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-[28px] w-[28px]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="8" r="4.2" />
+            <path d="M4.5 20c1.6-3.1 4.4-4.8 7.5-4.8s5.9 1.7 7.5 4.8" />
+          </svg>
+        </button>
+
+        {isAccountMenuOpen ? (
+          <div className="absolute right-0 z-30 mt-3 w-[340px] rounded-[24px] border border-[#d9d9de] bg-[#f2f2f4] p-6 shadow-[0_24px_44px_rgba(0,0,0,0.14)]">
+            <p className="text-[18px] leading-none font-semibold text-[#15151b]">{accountDisplayEmail}</p>
+            <p className="mt-2 text-[15px] font-medium text-[#7b7d88]">{accountDisplayName}</p>
+
+            <div className="mt-5 border-t border-[#d7d8de] pt-4">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-[17px] font-semibold text-[#c4362c] hover:text-[#ab2e25]"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    ) : null;
+
   return (
-    <AppLayout headerCenter={headerTabs}>
+    <AppLayout headerCenter={headerTabs} headerRight={headerRight}>
       {view === "team" ? (
         <>
           <ContentLayout variant="default" className="flex justify-center pt-6 pb-16">
