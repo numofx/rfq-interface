@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout, CardWrapper, ContentLayout, containerClass } from "@/components/layout/page-shell";
 import { supabase } from "@/lib/supabase/client";
@@ -64,6 +65,7 @@ const checkEmailExists = async (email: string) => {
 export default function HomePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const currentYear = new Date().getFullYear();
   const [view, setView] = useState<View>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showCreatePassword, setShowCreatePassword] = useState(false);
@@ -676,8 +678,9 @@ export default function HomePage() {
           </footer>
         </>
       ) : (
-        <ContentLayout variant="auth" className="pt-20">
-          <CardWrapper size="auth" className="max-w-sm">
+        <>
+          <ContentLayout variant="auth" className="pt-20">
+            <CardWrapper size="auth" className="max-w-sm">
             {view === "login" ? (
               <>
                 <div className="space-y-5">
@@ -969,8 +972,41 @@ export default function HomePage() {
                 Cookie Policy
               </a>
             </div>
-          </CardWrapper>
-        </ContentLayout>
+            </CardWrapper>
+          </ContentLayout>
+
+          <footer className="border-t border-[#d9dbe2]">
+            <div className={`${containerClass} py-4`}>
+              <div className="flex flex-col items-center gap-2.5 text-center">
+                <div className="relative h-[24px] w-[88px]">
+                  <Image src="/numo.png" alt="Numo" fill className="object-contain" />
+                </div>
+
+                <p className="text-[11px] text-[#6a7281]">
+                  Copyright © {currentYear} Numo Technologies Inc. All rights reserved
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-[#586173]">Let&apos;s stay in touch</span>
+                  <a
+                    href="#"
+                    aria-label="X"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8bfcb] text-[14px] leading-none text-[#1f2530] hover:bg-[#eaebef]"
+                  >
+                    X
+                  </a>
+                  <a
+                    href="#"
+                    aria-label="LinkedIn"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8bfcb] text-[13px] font-semibold leading-none text-[#1f2530] hover:bg-[#eaebef]"
+                  >
+                    in
+                  </a>
+                </div>
+              </div>
+            </div>
+          </footer>
+        </>
       )}
     </AppLayout>
   );
