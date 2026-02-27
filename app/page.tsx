@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout, CardWrapper, ContentLayout, containerClass } from "@/components/layout/page-shell";
 import { supabase } from "@/lib/supabase/client";
@@ -955,13 +954,15 @@ export default function HomePage() {
               </>
             )}
 
-            <div className="mt-6 text-center text-[12px] leading-[1.35] text-[#8f9099]">
-              <p>
-                This site is protected by reCAPTCHA and the
-                <br />
-                Google Privacy Policy and Terms of Service apply.
-              </p>
-            </div>
+            {view !== "login" ? (
+              <div className="mt-6 text-center text-[12px] leading-[1.35] text-[#8f9099]">
+                <p>
+                  This site is protected by reCAPTCHA and the
+                  <br />
+                  Google Privacy Policy and Terms of Service apply.
+                </p>
+              </div>
+            ) : null}
 
             <div className="mt-4 flex justify-center gap-3 text-[12px] text-[#8f9099]">
               <a href="#" className="hover:text-[#70707a]">
@@ -976,32 +977,11 @@ export default function HomePage() {
           </ContentLayout>
 
           <footer className="border-t border-[#d9dbe2]">
-            <div className={`${containerClass} py-4`}>
-              <div className="flex flex-col items-center gap-2.5 text-center">
-                <div className="relative h-[24px] w-[88px]">
-                  <Image src="/numo.png" alt="Numo" fill className="object-contain" />
-                </div>
-
-                <p className="text-[11px] text-[#6a7281]">
-                  Copyright © {currentYear} Numo Technologies Inc. All rights reserved
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[#586173]">Let&apos;s stay in touch</span>
-                  <a
-                    href="#"
-                    aria-label="X"
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8bfcb] text-[14px] leading-none text-[#1f2530] hover:bg-[#eaebef]"
-                  >
-                    X
-                  </a>
-                  <a
-                    href="#"
-                    aria-label="LinkedIn"
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b8bfcb] text-[13px] font-semibold leading-none text-[#1f2530] hover:bg-[#eaebef]"
-                  >
-                    in
-                  </a>
+            <div className={`${containerClass} py-10`}>
+              <div className="flex flex-col items-start gap-6 text-[#70727b]">
+                <div className="text-[12px] leading-[1.35] md:text-[13px]">
+                  <p>Numo Technologies Inc.</p>
+                  <p>All rights reserved, © Numo {currentYear}.</p>
                 </div>
               </div>
             </div>
