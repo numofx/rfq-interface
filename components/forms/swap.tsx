@@ -93,16 +93,16 @@ function PairFlag({ src, alt }: { src: string; alt: string }) {
     <Image
       src={src}
       alt={alt}
-      width={14}
-      height={14}
-      className="h-3.5 w-3.5 rounded-full border border-[var(--inst-surface)] object-cover"
+      width={16}
+      height={16}
+      className="h-4 w-4 shrink-0 rounded-full object-cover"
     />
   );
 }
 
 function PairFlags({ flags }: { flags: Array<{ src: string; alt: string }> }) {
   return (
-    <span className="flex items-center -space-x-1.5">
+    <span className="flex items-center -space-x-1">
       {flags.map((flag) => (
         <PairFlag key={flag.src} src={flag.src} alt={flag.alt} />
       ))}
