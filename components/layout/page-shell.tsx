@@ -33,7 +33,7 @@ export function AppLayout({
                 <Image src="/numo.png" alt="Numo" fill className="object-contain object-left" priority />
               </div>
               <div className="ml-0.5 mr-1 h-6 w-px bg-[#d6d7dd]" />
-              <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">FX Options</p>
+              <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">RFQ</p>
             </div>
           </Link>
 

@@ -9,9 +9,9 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "Numo: FX Options",
+  title: "Numo: Frontier FX Hedging",
   description:
-    "Protect your business from currency volatility with Numo FX options.",
+    "Protect your business from currency volatility in emerging markets.",
   icons: {
     apple: [
       {
