@@ -91,7 +91,7 @@ export default function AppPage() {
   return (
     <AppLayout headerRight={headerRight}>
       <ContentLayout variant="rfq">
-        <CardWrapper size="ticket">
+        <CardWrapper size="ticket" className="max-w-[980px]">
           <ForwardInterface />
         </CardWrapper>
       </ContentLayout>

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Calendar } from "lucide-react";
 import { createPublicClient, http } from "viem";
 import { base, celo } from "viem/chains";
+import { OptionSidePanel } from "@/components/forms/option-side-panel";
 import {
   DropdownSelect,
   FieldLabel,
@@ -297,6 +298,7 @@ export function ForwardInterface() {
   }, [parsedNotional, parsedStrike]);
   const hasRequestedQuotes = state !== "IDLE";
   const showIndicativePremium = hasRequestedQuotes && parsedNotional > 0 && parsedStrike > 0;
+  const panelPremium = showIndicativePremium ? indicativePremium : undefined;
 
   useEffect(() => {
     let cancelled = false;
@@ -507,6 +509,7 @@ export function ForwardInterface() {
 
   return (
     <>
+      <div className="grid w-full max-w-[980px] gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
       <SurfaceCard className="space-y-2 p-2 sm:p-2.5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
         <section className="space-y-1">
             <div>
@@ -754,6 +757,15 @@ export function ForwardInterface() {
             </div>
           ) : null}
       </SurfaceCard>
+      <OptionSidePanel
+        pair={pair}
+        optionType={optionType}
+        spot={hasValidSpot ? spot : null}
+        strike={parsedStrike}
+        daysToExpiry={expiryCountdownDays}
+        premiumUSDC={panelPremium}
+      />
+      </div>
 
       {isQuotePopupOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4">
