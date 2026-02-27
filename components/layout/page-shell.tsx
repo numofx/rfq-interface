@@ -26,7 +26,7 @@ export function AppLayout({
     <div className={cn("min-h-screen bg-[#f3f3f4] text-[#15151b]", className)}>
       <div className="flex min-h-screen flex-col">
         <header className={cn(headerHeightClass, "shrink-0")}>
-          <div className={cn(containerClass, "relative flex h-full items-center")}>
+          <div className={cn(containerClass, "relative flex h-full items-center translate-y-6")}>
           <Link href={logoLink} className="shrink-0">
             <div className="flex items-center gap-2">
               <div className="relative -mr-6 h-[31px] w-[114px]">
@@ -63,7 +63,7 @@ interface ContentLayoutProps {
 
 const contentVariantClass: Record<ContentVariant, string> = {
   default: "pt-4 pb-8",
-  rfq: "flex justify-center pt-4 pb-8",
+  rfq: "flex justify-center pt-16 pb-8",
   auth: "flex flex-1 items-start justify-center pt-14 pb-12",
 };
 

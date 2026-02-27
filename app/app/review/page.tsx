@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Calendar, CircleDollarSign, Percent, TrendingUp } from "lucide-react";
 
 type OptionType = "call" | "put";
-type Pair = "USDC/cNGN" | "USDC/KES";
+type Pair = "USD/NGN" | "USD/KES";
 
 function formatPairLabel(pair: string) {
   return pair.replace("/", " / ");
@@ -56,7 +56,7 @@ export default function ReviewPage() {
   const sp = useSearchParams();
 
   const data = useMemo(() => {
-    const pair = (sp.get("pair") || "USDC/cNGN") as Pair;
+    const pair = (sp.get("pair") || "USD/NGN") as Pair;
     const type = (sp.get("type") || "call") as OptionType;
     const notional = Number(sp.get("notional") || "0") || 0;
     const strike = Number(sp.get("strike") || "0") || 0;
@@ -64,7 +64,7 @@ export default function ReviewPage() {
     const indicative = Number(sp.get("indicative") || "0") || 0;
 
     const quoteCurrency = pair.split("/")[1];
-    const scenario = pair === "USDC/cNGN" ? { up: 2600, flat: 1500 } : { up: 160, flat: 130 };
+    const scenario = pair === "USD/NGN" ? { up: 2600, flat: 1500 } : { up: 160, flat: 130 };
     const contractCount = notional > 0 ? notional / Math.max(strike, 0.0001) : 0;
     const premium = contractCount * indicative;
     const premiumPct = notional > 0 ? (premium / notional) * 100 : 0;
@@ -119,7 +119,7 @@ export default function ReviewPage() {
             <div className="divide-y divide-black/5">
               <SummaryRow
                 icon={<CircleDollarSign className="h-4 w-4 text-neutral-600" />}
-                label="Notional (USDC)"
+                label="Notional (USD)"
                 value={formatUsd0(data.notional)}
               />
               <SummaryRow
@@ -165,4 +165,3 @@ export default function ReviewPage() {
     </div>
   );
 }
-

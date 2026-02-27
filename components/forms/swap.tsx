@@ -26,7 +26,7 @@ type RFQState =
   | "DONE"
   | "ERROR";
 
-type Pair = "USDC/cNGN" | "USDT/KESm";
+type Pair = "USD/NGN" | "USD/KES";
 type OptionType = "call" | "put";
 
 interface Quote {
@@ -43,7 +43,7 @@ const ATM_THRESHOLD = 0.0025;
 const CHAINLINK_NGN_USD_FEED_BASE = "0xdfbb5Cbc88E382de007bfe6CE99C388176ED80aD";
 const CHAINLINK_KES_USD_FEED_CELO = "0x0826492a24b1dBd1d8fcB4701b38C557CE685e9D";
 const DEFAULT_SPOT_BY_PAIR: Partial<Record<Pair, number>> = {
-  "USDT/KESm": 130,
+  "USD/KES": 130,
 };
 const chainlinkAggregatorV3Abi = [
   {
@@ -77,8 +77,8 @@ const celoPublicClient = createPublicClient({
 });
 
 const pairs = [
-  { id: "usdc-cngn", label: "USDC/cNGN" },
-  { id: "usdt-kesm", label: "USDT/KESm" },
+  { id: "usd-ngn", label: "USD/NGN" },
+  { id: "usd-kes", label: "USD/KES" },
 ] as const;
 
 const optionOptions: ReadonlyArray<{ value: OptionType; label: string }> = [
@@ -87,29 +87,6 @@ const optionOptions: ReadonlyArray<{ value: OptionType; label: string }> = [
 ] as const;
 
 const makers = ["Maker A", "Maker B", "Maker C", "Maker D"] as const;
-
-function PairIcons({ left, right }: { left: string; right: string }) {
-  return (
-    <span className="flex items-center -space-x-1.5">
-      <Image
-        src={left}
-        alt=""
-        width={16}
-        height={16}
-        aria-hidden="true"
-        className="h-4 w-4 rounded-full border border-[var(--inst-surface)] bg-white object-cover"
-      />
-      <Image
-        src={right}
-        alt=""
-        width={16}
-        height={16}
-        aria-hidden="true"
-        className="h-4 w-4 rounded-full border border-[var(--inst-surface)] bg-white object-cover"
-      />
-    </span>
-  );
-}
 
 function PairFlag({ src, alt }: { src: string; alt: string }) {
   return (
@@ -197,7 +174,7 @@ function StatusRail({ state }: { state: RFQState }) {
 
 export function ForwardInterface() {
   const [state, setState] = useState<RFQState>("IDLE");
-  const [pair, setPair] = useState<Pair>("USDC/cNGN");
+  const [pair, setPair] = useState<Pair>("USD/NGN");
   const [optionType, setOptionType] = useState<OptionType>("call");
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
@@ -218,11 +195,10 @@ export function ForwardInterface() {
   const pairOptions = useMemo(
     () =>
       pairs.map((nextPair) => {
-        if (nextPair.label === "USDC/cNGN") {
+        if (nextPair.label === "USD/NGN") {
           return {
             value: nextPair.label as Pair,
             label: nextPair.label,
-            leading: <PairIcons left="/tokens/usdc.svg" right="/tokens/cngn.svg" />,
             trailing: (
               <PairFlags
                 flags={[
@@ -236,7 +212,6 @@ export function ForwardInterface() {
         return {
           value: nextPair.label as Pair,
           label: nextPair.label,
-          leading: <PairIcons left="/tokens/usdt.svg" right="/tokens/kesm.svg" />,
           trailing: (
             <PairFlags
               flags={[
@@ -254,9 +229,9 @@ export function ForwardInterface() {
   const parsedStrike = Number(strike.replace(/,/g, "")) || 0;
   const [baseCurrency, quoteCurrency] = pair.split("/") as [string, string];
   const spot =
-    pair === "USDC/cNGN"
+    pair === "USD/NGN"
       ? usdcCngnSpot
-      : pair === "USDT/KESm"
+      : pair === "USD/KES"
         ? usdtKesmSpot ?? DEFAULT_SPOT_BY_PAIR[pair]
         : DEFAULT_SPOT_BY_PAIR[pair];
   const hasValidSpot = typeof spot === "number" && Number.isFinite(spot) && spot > 0;
@@ -457,7 +432,7 @@ export function ForwardInterface() {
 
   const clearForm = () => {
     setState("IDLE");
-    setPair("USDC/cNGN");
+    setPair("USD/NGN");
     setOptionType("call");
     const resetExpiry = toIsoDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     setExpiryDate(resetExpiry);

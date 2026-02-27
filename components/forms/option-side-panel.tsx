@@ -88,7 +88,7 @@ function buildPayoffCurve({
 }
 
 export function OptionSidePanel({
-  pair = "USDC/cNGN",
+  pair = "USD/NGN",
   optionType,
   spot,
   strike,
@@ -155,7 +155,7 @@ export function OptionSidePanel({
 
       <div className="grid grid-cols-2 gap-1">
         <div className="rounded-[10px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-2.5 py-2">
-          <div className="text-[10px] font-semibold text-[var(--inst-muted)]">Spot (cNGN per USDC)</div>
+          <div className="text-[10px] font-semibold text-[var(--inst-muted)]">Spot (NGN per USD)</div>
           <div className="mt-0.5 text-[14px] font-semibold text-[var(--inst-text)]">
             {hasSpot ? formatTwo(safeSpot) : "—"}
           </div>
@@ -205,7 +205,7 @@ export function OptionSidePanel({
                   fontSize: 11,
                   color: "var(--inst-text)",
                 }}
-                formatter={(value: number) => [`${formatTwo(value)} cNGN/USDC`, "Spot"]}
+                formatter={(value: number) => [`${formatTwo(value)} NGN/USD`, "Spot"]}
                 labelFormatter={(value: string, payload) => {
                   const spotPoint = payload[0]?.payload?.spot as number | undefined;
                   const dist = typeof spotPoint === "number" ? spotPoint - safeStrike : 0;
@@ -278,7 +278,7 @@ export function OptionSidePanel({
                   color: "var(--inst-text)",
                 }}
                 labelFormatter={(value) => `Spot ${formatTwo(Number(value))}`}
-                formatter={(value: number) => [`${formatTwo(value)} USDC`, "Profit @ Expiry"]}
+                formatter={(value: number) => [`${formatTwo(value)} USD`, "Profit @ Expiry"]}
               />
               <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="4 4" />
               {hasSpot ? (
@@ -320,8 +320,8 @@ export function OptionSidePanel({
 
       <p className="text-[11px] leading-[1.35] text-[var(--inst-muted)]">
         {optionType === "call"
-          ? "Pays if USDC rises above Strike at expiry (NGN weakens)."
-          : "Pays if USDC falls below Strike at expiry (NGN strengthens)."}
+          ? "Pays if USD rises above Strike at expiry (NGN weakens)."
+          : "Pays if USD falls below Strike at expiry (NGN strengthens)."}
       </p>
     </SurfaceCard>
   );
