@@ -386,7 +386,7 @@ export default function HomePage() {
 
   const headerTabs =
     view !== "team" ? (
-      <div className="rounded-[12px] bg-[#e5e5e7] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+      <div className="translate-y-4 rounded-[12px] bg-[#e5e5e7] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
         <div className="flex items-center gap-1 text-[14px] leading-none">
           <button
             type="button"
@@ -461,7 +461,7 @@ export default function HomePage() {
     ) : null;
 
   return (
-    <AppLayout headerCenter={headerTabs} headerRight={headerRight}>
+    <AppLayout headerCenter={headerTabs} headerRight={headerRight} showLogoSuffix={false} logoSize="large">
       {view === "team" ? (
         <>
           <ContentLayout variant="default" className="flex justify-center pt-6 pb-16">
@@ -676,7 +676,7 @@ export default function HomePage() {
           </footer>
         </>
       ) : (
-        <ContentLayout variant="auth">
+        <ContentLayout variant="auth" className="pt-20">
           <CardWrapper size="auth" className="max-w-sm">
             {view === "login" ? (
               <>

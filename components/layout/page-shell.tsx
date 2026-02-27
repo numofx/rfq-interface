@@ -12,6 +12,8 @@ interface AppLayoutProps {
   headerCenter?: React.ReactNode;
   headerRight?: React.ReactNode;
   logoLink?: string;
+  showLogoSuffix?: boolean;
+  logoSize?: "default" | "large";
   className?: string;
 }
 
@@ -20,8 +22,11 @@ export function AppLayout({
   headerCenter,
   headerRight,
   logoLink = "/",
+  showLogoSuffix = true,
+  logoSize = "default",
   className,
 }: AppLayoutProps) {
+  const logoContainerClass = logoSize === "large" ? "-mr-8 h-[39px] w-[142px]" : "-mr-6 h-[31px] w-[114px]";
   return (
     <div className={cn("min-h-screen bg-[#f3f3f4] text-[#15151b]", className)}>
       <div className="flex min-h-screen flex-col">
@@ -29,11 +34,15 @@ export function AppLayout({
           <div className={cn(containerClass, "relative flex h-full items-center translate-y-6")}>
           <Link href={logoLink} className="shrink-0">
             <div className="flex items-center gap-2">
-              <div className="relative -mr-6 h-[31px] w-[114px]">
+              <div className={cn("relative", logoContainerClass)}>
                 <Image src="/numo.png" alt="Numo" fill className="object-contain object-left" priority />
               </div>
-              <div className="ml-0.5 mr-1 h-6 w-px bg-[#d6d7dd]" />
-              <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">RFQ</p>
+              {showLogoSuffix ? (
+                <>
+                  <div className="ml-0.5 mr-1 h-6 w-px bg-[#d6d7dd]" />
+                  <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">RFQ</p>
+                </>
+              ) : null}
             </div>
           </Link>
 
