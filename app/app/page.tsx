@@ -77,8 +77,24 @@ export default function AppPage() {
           <div className="mt-3 border-t border-[#d7d8de] pt-3">
             <button
               type="button"
+              onClick={() => setIsAccountMenuOpen(false)}
+              className="block text-[14px] font-medium text-[#15151b] hover:text-[#2b2c33] active:font-semibold"
+            >
+              Manage account
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsAccountMenuOpen(false)}
+              className="mt-2 block text-[14px] font-medium text-[#15151b] hover:text-[#2b2c33] active:font-semibold"
+            >
+              Transaction history
+            </button>
+
+            <button
+              type="button"
               onClick={handleLogout}
-              className="text-[14px] font-semibold text-[#c4362c] hover:text-[#ab2e25]"
+              className="mt-2 block text-[14px] font-semibold text-[#c4362c] hover:text-[#ab2e25]"
             >
               Log out
             </button>

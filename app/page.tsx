@@ -450,8 +450,24 @@ export default function HomePage() {
             <div className="mt-5 border-t border-[#d7d8de] pt-4">
               <button
                 type="button"
+                onClick={() => setIsAccountMenuOpen(false)}
+                className="block text-[17px] font-medium text-[#15151b] hover:text-[#2b2c33] active:font-semibold"
+              >
+                Manage account
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAccountMenuOpen(false)}
+                className="mt-3 block text-[17px] font-medium text-[#15151b] hover:text-[#2b2c33] active:font-semibold"
+              >
+                Transaction history
+              </button>
+
+              <button
+                type="button"
                 onClick={handleLogout}
-                className="text-[17px] font-semibold text-[#c4362c] hover:text-[#ab2e25]"
+                className="mt-3 block text-[17px] font-semibold text-[#c4362c] hover:text-[#ab2e25]"
               >
                 Log out
               </button>
