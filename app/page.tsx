@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout, CardWrapper, ContentLayout, containerClass } from "@/components/layout/page-shell";
 import { supabase } from "@/lib/supabase/client";
@@ -386,7 +387,7 @@ export default function HomePage() {
   };
 
   const headerTabs =
-    view !== "team" ? (
+    view !== "team" && view !== "login" && view !== "signup" ? (
       <div className="translate-y-4 rounded-[12px] bg-[#e5e5e7] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
         <div className="flex items-center gap-1 text-[14px] leading-none">
           <button
@@ -417,6 +418,8 @@ export default function HomePage() {
 
   const accountDisplayName = accountName || [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || "User";
   const accountDisplayEmail = accountEmail || signupEmail.trim() || loginEmail.trim() || "No email available";
+  const isLoginView = view === "login";
+  const isPremiumAuthView = view === "login" || view === "signup";
   const headerRight =
     view === "team" ? (
       <div className="relative">
@@ -478,7 +481,19 @@ export default function HomePage() {
     ) : null;
 
   return (
-    <AppLayout headerCenter={headerTabs} headerRight={headerRight} showLogoSuffix={false} logoSize="large">
+    <AppLayout
+      headerCenter={headerTabs}
+      headerRight={headerRight}
+      logoSrc={isPremiumAuthView ? "/numo_logo_white.png" : "/numo.png"}
+      hideLogo={isPremiumAuthView}
+      showLogoSuffix={false}
+      logoSize="large"
+      className={
+        isPremiumAuthView
+          ? "relative overflow-hidden bg-[#05070a] text-white before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.06),_transparent_55%)]"
+          : undefined
+      }
+    >
       {view === "team" ? (
         <>
           <ContentLayout variant="default" className="flex justify-center pt-6 pb-16">
@@ -694,16 +709,34 @@ export default function HomePage() {
         </>
       ) : (
         <>
-          <ContentLayout variant="auth" className="pt-20">
-            <CardWrapper size="auth" className="max-w-sm">
+          <ContentLayout
+            variant="auth"
+            className={
+              isPremiumAuthView
+                ? "relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 pt-6 pb-[max(env(safe-area-inset-bottom),2rem)]"
+                : "pt-20"
+            }
+          >
+            <CardWrapper size="auth" className={isPremiumAuthView ? "max-w-[420px]" : "max-w-sm"}>
             {view === "login" ? (
               <>
-                <div className="space-y-5">
-                  <h1 className="text-[26px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
-                    Log in
-                  </h1>
+                <div className="space-y-5 rounded-[16px] border border-white/10 bg-[#0b0f14]/80 px-10 pt-10 pb-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md">
+                  <div className="space-y-3">
+                    <div className="flex justify-center">
+                      <div className="relative h-9 w-[136px]">
+                        <Image src="/numo_logo_white.png" alt="Numo" fill className="object-contain" />
+                      </div>
+                    </div>
 
-                  <form className="space-y-4" aria-label="Login form" onSubmit={handleLoginSubmit}>
+                    <div className="space-y-1.5">
+                      <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                        Log in
+                      </h1>
+                      <p className="text-sm text-white/70">Institutional hedging for frontier FX.</p>
+                    </div>
+                  </div>
+
+                  <form className="space-y-3" aria-label="Login form" onSubmit={handleLoginSubmit}>
                     <div>
                       <label htmlFor="email" className="sr-only">
                         Email address
@@ -718,11 +751,13 @@ export default function HomePage() {
                           setLoginErrorField(null);
                           setLoginErrorMessage("");
                         }}
-                        className={`h-[42px] w-full rounded-[12px] border-2 bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none ${
-                          isLoginEmailError ? "border-[#b42318]" : "border-[#e7e7ea]"
+                        className={`h-12 w-full rounded-lg border px-3 text-[13px] text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-sky-500/20 ${
+                          isLoginEmailError
+                            ? "border-[#b42318] bg-[#2a1215]"
+                            : "border-white/10 bg-white/5 hover:border-white/15"
                         }`}
                       />
-                      {isLoginEmailError ? <p className="mt-2 text-[12px] text-[#b42318]">{loginErrorMessage}</p> : null}
+                      {isLoginEmailError ? <p className="mt-2 text-[12px] text-[#fca5a5]">{loginErrorMessage}</p> : null}
                     </div>
 
                     <div>
@@ -730,8 +765,10 @@ export default function HomePage() {
                         Password
                       </label>
                       <div
-                        className={`flex h-[42px] items-center rounded-[12px] border-2 bg-[#ececef] px-3 ${
-                          isLoginPasswordError ? "border-[#b42318]" : "border-[#141419]"
+                        className={`flex h-12 items-center rounded-lg border px-3 transition-colors ${
+                          isLoginPasswordError
+                            ? "border-[#b42318] bg-[#2a1215]"
+                            : "border-white/10 bg-white/5 hover:border-white/15 focus-within:border-white/20"
                         }`}
                       >
                         <input
@@ -744,17 +781,17 @@ export default function HomePage() {
                             setLoginErrorField(null);
                             setLoginErrorMessage("");
                           }}
-                          className="h-full w-full bg-transparent text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                          className="h-full w-full bg-transparent text-[13px] text-white placeholder:text-white/35 focus:outline-none"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          className="ml-2 flex h-[28px] w-[28px] items-center justify-center rounded-[9px] bg-[#f7f7f7]"
+                          className="ml-2 flex h-[30px] w-[30px] items-center justify-center rounded-[10px] border border-white/10 bg-white/5 text-white/65 hover:text-white/85"
                           aria-label={showPassword ? "Hide password" : "Show password"}
                         >
                           <svg
                             viewBox="0 0 24 24"
-                            className="h-[12px] w-[12px] text-[#1c1c21]"
+                            className="h-[12px] w-[12px]"
                             fill="none"
                             stroke="currentColor"
                             strokeWidth="2"
@@ -769,38 +806,59 @@ export default function HomePage() {
                         </button>
                       </div>
                       {isLoginPasswordError ? (
-                        <p className="mt-2 text-[12px] text-[#b42318]">{loginErrorMessage}</p>
+                        <p className="mt-2 text-[12px] text-[#fca5a5]">{loginErrorMessage}</p>
                       ) : null}
                     </div>
 
                     <button
                       type="submit"
                       disabled={isAuthBusy}
-                      className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)]"
+                      className="h-12 w-full rounded-lg border border-black/10 bg-white text-[14px] font-semibold text-black shadow-[0_10px_28px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.55)] transition hover:bg-white/90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      Log in &rarr;
+                      Log in
                     </button>
                   </form>
 
-                  {statusMessage ? <p className="text-[12px] text-[#4b5d4b]">{statusMessage}</p> : null}
+                  {statusMessage ? <p className="text-[12px] text-[#9ca3af]">{statusMessage}</p> : null}
                   <button
                     type="button"
                     onClick={handleForgotPassword}
-                    className="w-full text-center text-[14px] text-[#8f9099] hover:text-[#6f707a]"
+                    className="mt-3 w-full text-right text-xs text-white/55 transition hover:text-white"
                   >
                     Forgot your password?
                   </button>
+                  <p className="mt-5 flex items-baseline justify-center gap-2">
+                    <span className="text-xs text-white/55">New to Numo?</span>
+                    <button
+                      type="button"
+                      onClick={() => setView("signup")}
+                      className="text-xs font-medium text-white/80 underline underline-offset-4 transition hover:text-white"
+                    >
+                      Create account
+                    </button>
+                  </p>
                 </div>
               </>
             ) : view === "signup" ? (
               <>
-                <div className="space-y-5">
-                  <h1 className="text-[26px] leading-none font-semibold tracking-[-0.02em] text-[#131318]">
-                    Create an account
-                  </h1>
+                <div className="space-y-5 rounded-[16px] border border-white/10 bg-[#0b0f14]/80 px-10 pt-10 pb-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md">
+                  <div className="space-y-3">
+                    <div className="flex justify-center">
+                      <div className="relative h-9 w-[136px]">
+                        <Image src="/numo_logo_white.png" alt="Numo" fill className="object-contain" />
+                      </div>
+                    </div>
 
-                  <form className="space-y-4" aria-label="Sign up form" onSubmit={handleSignupSubmit}>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                        Create account
+                      </h1>
+                      <p className="text-sm text-white/70">Institutional hedging for frontier FX.</p>
+                    </div>
+                  </div>
+
+                  <form className="space-y-3" aria-label="Sign up form" onSubmit={handleSignupSubmit}>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
                         <label htmlFor="first-name" className="sr-only">
                           First name
@@ -811,7 +869,7 @@ export default function HomePage() {
                           placeholder="Enter your first name"
                           value={firstName}
                           onChange={(event) => setFirstName(event.target.value)}
-                          className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                          className="h-12 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-[13px] text-white placeholder:text-white/35 hover:border-white/15 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                         />
                       </div>
                       <div>
@@ -824,7 +882,7 @@ export default function HomePage() {
                           placeholder="Enter your last name"
                           value={lastName}
                           onChange={(event) => setLastName(event.target.value)}
-                          className="h-[42px] w-full rounded-[12px] border border-[#e7e7ea] bg-[#e8e8eb] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none"
+                          className="h-12 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-[13px] text-white placeholder:text-white/35 hover:border-white/15 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                         />
                       </div>
                     </div>
@@ -843,8 +901,8 @@ export default function HomePage() {
                           setSignupEmail(event.target.value);
                           setAuthError("");
                         }}
-                        className={`h-[42px] w-full rounded-[12px] border-2 bg-[#ececef] px-3 text-[13px] text-[#202026] placeholder:text-[#9697a4] focus:outline-none ${
-                          authError ? "border-[#b42318]" : "border-[#141419]"
+                        className={`h-12 w-full rounded-lg border px-3 text-[13px] text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-sky-500/20 ${
+                          authError ? "border-[#b42318] bg-[#2a1215]" : "border-white/10 bg-white/5 hover:border-white/15"
                         }`}
                       />
                     </div>
@@ -852,17 +910,21 @@ export default function HomePage() {
                     <button
                       type="submit"
                       disabled={isAuthBusy}
-                      className="h-[42px] w-full rounded-[12px] bg-gradient-to-r from-[#111118] to-[#171722] text-[14px] font-semibold text-[#f2f2f4] shadow-[0_2px_0_rgba(0,0,0,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
+                      className="h-12 w-full rounded-lg border border-black/10 bg-white text-[14px] font-semibold text-black shadow-[0_10px_28px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.55)] transition hover:bg-white/90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {isAuthBusy ? "Checking..." : "Continue →"}
+                      {isAuthBusy ? "Checking..." : "Create account"}
                     </button>
                   </form>
 
-                  {authError ? <p className="text-[12px] text-[#b42318]">{authError}</p> : null}
-                  <p className="text-center text-[14px] text-[#8f9099]">
-                    Do you have an account?{" "}
-                    <button type="button" onClick={() => setView("login")} className="font-semibold text-[#131318]">
-                      Login
+                  {authError ? <p className="text-[12px] text-[#fca5a5]">{authError}</p> : null}
+                  <p className="mt-5 flex items-baseline justify-center gap-2">
+                    <span className="text-xs text-white/55">Already have an account?</span>
+                    <button
+                      type="button"
+                      onClick={() => setView("login")}
+                      className="text-xs font-medium text-white/80 underline underline-offset-4 transition hover:text-white"
+                    >
+                      Log in
                     </button>
                   </p>
                 </div>
@@ -970,7 +1032,7 @@ export default function HomePage() {
               </>
             )}
 
-            {view !== "login" ? (
+            {view !== "login" && view !== "signup" ? (
               <div className="mt-6 text-center text-[12px] leading-[1.35] text-[#8f9099]">
                 <p>
                   This site is protected by reCAPTCHA and the
@@ -980,28 +1042,50 @@ export default function HomePage() {
               </div>
             ) : null}
 
-            <div className="mt-4 flex justify-center gap-3 text-[12px] text-[#8f9099]">
-              <a href="#" className="hover:text-[#70707a]">
-                Privacy Policy
-              </a>
-              <span aria-hidden="true">&middot;</span>
-              <a href="#" className="hover:text-[#70707a]">
-                Cookie Policy
-              </a>
-            </div>
+            {view === "login" || view === "signup" ? null : (
+              <div className="mt-4 flex justify-center gap-3 text-[12px] text-[#8f9099]">
+                <a href="#" className="hover:text-[#70707a]">
+                  Privacy Policy
+                </a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="#" className="hover:text-[#70707a]">
+                  Cookie Policy
+                </a>
+              </div>
+            )}
             </CardWrapper>
           </ContentLayout>
 
-          <footer className="border-t border-[#d9dbe2]">
-            <div className={`${containerClass} py-10`}>
-              <div className="flex flex-col items-start gap-6 text-[#70727b]">
-                <div className="text-[12px] leading-[1.35] md:text-[13px]">
+          {isPremiumAuthView ? (
+            <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+              <div className={`${containerClass} flex items-end justify-between text-[10px] text-white/35`}>
+                <div className="pointer-events-auto flex items-center gap-2">
+                  <a href="#" className="hover:text-white/55">
+                    Privacy
+                  </a>
+                  <span aria-hidden="true">&middot;</span>
+                  <a href="#" className="hover:text-white/55">
+                    Cookie
+                  </a>
+                </div>
+                <div className="pointer-events-auto text-right">
                   <p>Numo Technologies Inc.</p>
                   <p>All rights reserved, © Numo {currentYear}.</p>
                 </div>
               </div>
-            </div>
-          </footer>
+            </footer>
+          ) : (
+            <footer className="border-t border-[#d9dbe2]">
+              <div className={`${containerClass} py-10`}>
+                <div className="flex flex-col items-start gap-6 text-[#70727b]">
+                  <div className="text-[12px] leading-[1.35] md:text-[13px]">
+                    <p>Numo Technologies Inc.</p>
+                    <p>All rights reserved, © Numo {currentYear}.</p>
+                  </div>
+                </div>
+              </div>
+            </footer>
+          )}
         </>
       )}
     </AppLayout>

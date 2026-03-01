@@ -12,6 +12,8 @@ interface AppLayoutProps {
   headerCenter?: React.ReactNode;
   headerRight?: React.ReactNode;
   logoLink?: string;
+  logoSrc?: string;
+  hideLogo?: boolean;
   showLogoSuffix?: boolean;
   logoSize?: "default" | "large";
   className?: string;
@@ -22,6 +24,8 @@ export function AppLayout({
   headerCenter,
   headerRight,
   logoLink = "/",
+  logoSrc = "/numo.png",
+  hideLogo = false,
   showLogoSuffix = true,
   logoSize = "default",
   className,
@@ -32,19 +36,21 @@ export function AppLayout({
       <div className="flex min-h-screen flex-col">
         <header className={cn(headerHeightClass, "shrink-0")}>
           <div className={cn(containerClass, "relative flex h-full items-center translate-y-6")}>
-          <Link href={logoLink} className="shrink-0">
-            <div className="flex items-center gap-2">
-              <div className={cn("relative", logoContainerClass)}>
-                <Image src="/numo.png" alt="Numo" fill className="object-contain object-left" priority />
+          {hideLogo ? null : (
+            <Link href={logoLink} className="shrink-0">
+              <div className="flex items-center gap-2">
+                <div className={cn("relative", logoContainerClass)}>
+                  <Image src={logoSrc} alt="Numo" fill className="object-contain object-left" priority />
+                </div>
+                {showLogoSuffix ? (
+                  <>
+                    <div className="ml-0.5 mr-1 h-6 w-px bg-[#d6d7dd]" />
+                    <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">RFQ</p>
+                  </>
+                ) : null}
               </div>
-              {showLogoSuffix ? (
-                <>
-                  <div className="ml-0.5 mr-1 h-6 w-px bg-[#d6d7dd]" />
-                  <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">RFQ</p>
-                </>
-              ) : null}
-            </div>
-          </Link>
+            </Link>
+          )}
 
           {headerCenter ? (
             <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[6px]">

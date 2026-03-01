@@ -18,7 +18,7 @@ type OptionType = "call" | "put";
 type PanelTab = "chart" | "payoff";
 
 interface SpotHistoryPoint {
-  date: string;
+  t: number;
   spot: number;
 }
 
@@ -56,7 +56,7 @@ function buildDefaultHistory(spot: number, days = 90): SpotHistoryPoint[] {
     const trend = ((days - i) / days - 0.5) * spot * 0.03;
     const point = i === 0 ? spot : Math.max(0, spot + wave + trend);
     data.push({
-      date: date.toISOString().split("T")[0],
+      t: date.getTime(),
       spot: point,
     });
   }
@@ -102,11 +102,12 @@ export function OptionSidePanel({
   const safeStrike = Number.isFinite(strike) && strike > 0 ? strike : safeSpot;
   const hasPremium = typeof premiumUSDC === "number" && Number.isFinite(premiumUSDC);
   const breakeven = hasPremium ? safeStrike + premiumUSDC : null;
+  const hasLiveHistory = Boolean(spotHistory?.length && spotHistory.length >= 2);
 
   const historyData = useMemo(() => {
-    if (spotHistory?.length) return spotHistory;
+    if (hasLiveHistory) return spotHistory;
     return buildDefaultHistory(safeSpot);
-  }, [safeSpot, spotHistory]);
+  }, [hasLiveHistory, safeSpot, spotHistory]);
 
   const moneyness = useMemo(() => {
     if (!hasSpot || !safeStrike) return "—";
@@ -182,9 +183,14 @@ export function OptionSidePanel({
             <LineChart data={historyData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
               <CartesianGrid stroke="rgba(143, 144, 153, 0.24)" vertical={false} />
               <XAxis
-                dataKey="date"
+                dataKey="t"
                 tick={{ fontSize: 10, fill: "var(--inst-muted)" }}
-                tickFormatter={(value: string) => value.slice(5)}
+                tickFormatter={(value: number) => {
+                  const date = new Date(value);
+                  return hasLiveHistory
+                    ? date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+                    : date.toISOString().slice(5, 10);
+                }}
                 minTickGap={26}
                 axisLine={false}
                 tickLine={false}
@@ -206,10 +212,20 @@ export function OptionSidePanel({
                   color: "var(--inst-text)",
                 }}
                 formatter={(value: number) => [`${formatTwo(value)} NGN/USD`, "Spot"]}
-                labelFormatter={(value: string, payload) => {
+                labelFormatter={(value: number, payload) => {
                   const spotPoint = payload[0]?.payload?.spot as number | undefined;
                   const dist = typeof spotPoint === "number" ? spotPoint - safeStrike : 0;
-                  return `${value}  |  Dist: ${formatSigned(dist)} to strike`;
+                  const date = new Date(value);
+                  const label = hasLiveHistory
+                    ? date.toLocaleString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })
+                    : date.toISOString().slice(0, 10);
+                  return `${label}  |  Dist: ${formatSigned(dist)} to strike`;
                 }}
               />
               <ReferenceArea

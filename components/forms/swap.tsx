@@ -28,6 +28,7 @@ type RFQState =
 
 type Pair = "USD/NGN" | "USD/KES";
 type OptionType = "call" | "put";
+type SpotHistoryPoint = { t: number; spot: number };
 
 interface Quote {
   id: string;
@@ -40,6 +41,8 @@ interface Quote {
 const QUOTE_WINDOW_SECONDS = 30;
 const REQUEST_DELAY_MS = 1400;
 const ATM_THRESHOLD = 0.0025;
+const MAX_SPOT_HISTORY_POINTS = 240;
+const MIN_DUPLICATE_SAMPLE_GAP_MS = 5_000;
 const CHAINLINK_NGN_USD_FEED_BASE = "0xdfbb5Cbc88E382de007bfe6CE99C388176ED80aD";
 const CHAINLINK_KES_USD_FEED_CELO = "0x0826492a24b1dBd1d8fcB4701b38C557CE685e9D";
 const DEFAULT_SPOT_BY_PAIR: Partial<Record<Pair, number>> = {
@@ -190,6 +193,7 @@ export function ForwardInterface() {
   const [calendarMonth, setCalendarMonth] = useState(() => parseIsoDate(expiryDate));
   const [usdcCngnSpot, setUsdcCngnSpot] = useState<number | null>(null);
   const [usdtKesmSpot, setUsdtKesmSpot] = useState<number | null>(null);
+  const [spotHistory, setSpotHistory] = useState<SpotHistoryPoint[]>([]);
   const calendarRef = useRef<HTMLDivElement | null>(null);
 
   const pairOptions = useMemo(
@@ -257,6 +261,32 @@ export function ForwardInterface() {
     }
     return `${pct} ${parsedStrike < spot ? "OTM" : "ITM"}`;
   }, [hasValidSpot, optionType, parsedStrike, spot]);
+
+  useEffect(() => {
+    setSpotHistory([]);
+  }, [pair]);
+
+  useEffect(() => {
+    if (!hasValidSpot || typeof spot !== "number") return;
+
+    const nextPoint: SpotHistoryPoint = { t: Date.now(), spot };
+    setSpotHistory((prev) => {
+      const last = prev[prev.length - 1];
+      if (
+        last &&
+        last.spot === nextPoint.spot &&
+        nextPoint.t - last.t < MIN_DUPLICATE_SAMPLE_GAP_MS
+      ) {
+        return prev;
+      }
+
+      const next = [...prev, nextPoint];
+      if (next.length > MAX_SPOT_HISTORY_POINTS) {
+        return next.slice(-MAX_SPOT_HISTORY_POINTS);
+      }
+      return next;
+    });
+  }, [hasValidSpot, pair, spot]);
 
   const sortedQuotes = useMemo(() => bestPriceFirst(quotes), [quotes]);
   const selectedQuote = useMemo(
@@ -739,6 +769,7 @@ export function ForwardInterface() {
         strike={parsedStrike}
         daysToExpiry={expiryCountdownDays}
         premiumUSDC={panelPremium}
+        spotHistory={spotHistory}
       />
       </div>
 
