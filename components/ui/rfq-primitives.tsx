@@ -6,7 +6,7 @@ export function SurfaceCard({ className, ...props }: React.HTMLAttributes<HTMLDi
   return (
     <div
       className={cn(
-        "rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-surface)] p-3 sm:p-3.5",
+        "rounded-2xl border border-border/70 bg-panel/55 p-3 sm:p-3.5 shadow-panel backdrop-blur-panel ring-1 ring-white/5",
         className
       )}
       {...props}
@@ -16,12 +16,12 @@ export function SurfaceCard({ className, ...props }: React.HTMLAttributes<HTMLDi
 
 export function FieldLabel({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <label className={cn("mb-1 block text-[11px] font-semibold text-[var(--inst-label)]", className)} {...props} />
+    <label className={cn("mb-1 block text-[11px] font-semibold text-muted", className)} {...props} />
   );
 }
 
 export function HelperText({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-[12px] leading-[1.3] text-[var(--inst-muted)]", className)} {...props} />;
+  return <p className={cn("text-[12px] leading-[1.3] text-muted", className)} {...props} />;
 }
 
 interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -39,7 +39,7 @@ export function TextInput({
     return (
       <input
         className={cn(
-          "h-[44px] w-full rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-[14px] text-[var(--inst-text)] placeholder:text-[var(--inst-placeholder)] focus:outline-none",
+          "h-11 w-full rounded-xl border border-border/70 bg-panel-2/50 px-4 text-sm text-text placeholder:text-muted/60 outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20",
           className
         )}
         {...props}
@@ -48,11 +48,11 @@ export function TextInput({
   }
 
   return (
-    <div className="flex h-[44px] items-center rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3">
-      {leftAdornment ? <div className="mr-3 text-[var(--inst-muted)]">{leftAdornment}</div> : null}
+    <div className="flex h-11 items-center rounded-xl border border-border/70 bg-panel-2/50 px-4">
+      {leftAdornment ? <div className="mr-3 text-muted">{leftAdornment}</div> : null}
       <input
         className={cn(
-          "h-full w-full bg-transparent text-[14px] text-[var(--inst-text)] placeholder:text-[var(--inst-placeholder)] focus:outline-none",
+          "h-full w-full bg-transparent text-sm text-text placeholder:text-muted/60 outline-none",
           className
         )}
         {...props}
@@ -66,7 +66,7 @@ export function PrimaryButton({ className, ...props }: React.ButtonHTMLAttribute
   return (
     <button
       className={cn(
-        "h-[44px] w-full rounded-[12px] bg-gradient-to-r from-[var(--inst-primary-start)] to-[var(--inst-primary-end)] text-[14px] font-semibold text-[var(--inst-primary-text)] shadow-[0_2px_0_rgba(0,0,0,0.08)] disabled:cursor-not-allowed disabled:opacity-60",
+        "h-11 w-full rounded-xl bg-white text-black font-medium hover:bg-white/95 active:bg-white/90 disabled:opacity-50",
         className
       )}
       {...props}
@@ -90,7 +90,7 @@ export function SegmentedControl<T extends string>({
   optionClassName,
 }: SegmentedControlProps<T>) {
   return (
-    <div className={cn("grid gap-1 rounded-[12px] bg-[var(--inst-control)] p-1", className)}>
+    <div className={cn("grid gap-1 rounded-xl border border-border/70 bg-panel-2/60 p-1", className)}>
       {options.map((option) => {
         const isActive = option.value === value;
         return (
@@ -99,8 +99,8 @@ export function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              "h-8 rounded-[10px] px-3 text-[13px] font-medium text-[var(--inst-label)]",
-              isActive && "bg-[var(--inst-control-active)] font-semibold text-[var(--inst-text)]",
+              "h-8 rounded-lg px-3 text-[13px] font-medium text-muted",
+              isActive && "bg-white font-semibold text-black",
               optionClassName
             )}
           >
@@ -154,18 +154,18 @@ export function DropdownSelect<T extends string>({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-[44px] w-full items-center justify-between rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-left text-[14px] text-[var(--inst-text)]"
+        className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-panel-2/50 px-4 text-left text-sm text-text"
       >
         <span className="flex items-center gap-2">
           {selected?.leading ? <span className="shrink-0">{selected.leading}</span> : null}
           <span className="font-semibold">{selected?.label ?? value}</span>
           {selected?.trailing ? <span className="shrink-0">{selected.trailing}</span> : null}
         </span>
-        <ChevronDown className={cn("h-4 w-4 text-[var(--inst-muted)] transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 text-muted transition-transform", open && "rotate-180")} />
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-full rounded-[24px] border border-[#d9dae0] bg-[#f4f4f5] p-5 shadow-[0_14px_28px_rgba(0,0,0,0.10)]">
+        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-full rounded-2xl border border-border/70 bg-panel p-5 shadow-panel backdrop-blur-panel">
           <div className="space-y-2">
             {options.map((option) => {
               const isSelected = option.value === value;
@@ -178,11 +178,11 @@ export function DropdownSelect<T extends string>({
                     setOpen(false);
                   }}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-[12px] px-2 py-2 text-left text-[12px] font-semibold text-[#131318]",
-                    isSelected && "bg-[#ebebee]"
+                    "flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-[12px] font-semibold text-text",
+                    isSelected && "bg-panel-2/70"
                   )}
                 >
-                  <span className="w-5 text-[#7b7d8a]">{isSelected ? <Check className="h-4 w-4" /> : null}</span>
+                  <span className="w-5 text-muted">{isSelected ? <Check className="h-4 w-4" /> : null}</span>
                   {option.leading ? <span className="shrink-0">{option.leading}</span> : null}
                   <span>{option.label}</span>
                   {option.trailing ? <span className="shrink-0">{option.trailing}</span> : null}

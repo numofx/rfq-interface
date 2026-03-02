@@ -6,15 +6,14 @@ import { Calendar } from "lucide-react";
 import { createPublicClient, http } from "viem";
 import { base, celo } from "viem/chains";
 import { OptionSidePanel } from "@/components/forms/option-side-panel";
+import { Panel } from "@/components/ui/panel";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import {
   DropdownSelect,
   FieldLabel,
   HelperText,
-  PrimaryButton,
-  SegmentedControl,
-  SurfaceCard,
-  TextInput,
 } from "@/components/ui/rfq-primitives";
+import { TextField } from "@/components/ui/text-field";
 
 type RFQState =
   | "IDLE"
@@ -147,7 +146,7 @@ function makeMockQuotes(notional: number): Quote[] {
 }
 
 function Spinner() {
-  return <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--inst-muted)] border-t-transparent" />;
+  return <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted/70 border-t-transparent" />;
 }
 
 function StatusRail({ state }: { state: RFQState }) {
@@ -163,8 +162,8 @@ function StatusRail({ state }: { state: RFQState }) {
             key={item}
             className={`rounded-[12px] border px-3 py-2 text-center text-[12px] font-semibold ${
               isActive
-                ? "border-[var(--inst-primary-start)] bg-[var(--inst-control-active)] text-[var(--inst-text)]"
-                : "border-[var(--inst-border)] bg-[var(--inst-input)] text-[var(--inst-muted)]"
+                ? "border-border bg-panel-2/60 text-text"
+                : "border-border/70 bg-panel-2/40 text-muted"
             }`}
           >
             {item}
@@ -515,7 +514,7 @@ export function ForwardInterface() {
   return (
     <>
       <div className="grid w-full max-w-[980px] gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-      <SurfaceCard className="space-y-2 p-2 sm:p-2.5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+      <Panel className="space-y-3 p-6">
         <section className="space-y-1">
             <div>
               <FieldLabel htmlFor="pair">Pair</FieldLabel>
@@ -526,7 +525,7 @@ export function ForwardInterface() {
               />
               <HelperText className="mt-1 text-[11px]">
                 Spot:{" "}
-                <span className="text-[var(--inst-text)]">
+                <span className="text-text">
                   {hasValidSpot ? spot.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—"}
                 </span>{" "}
                 {quoteCurrency} per {baseCurrency}
@@ -535,13 +534,25 @@ export function ForwardInterface() {
 
             <div>
               <FieldLabel>Option Type</FieldLabel>
-              <SegmentedControl
-                value={optionType}
-                onChange={setOptionType}
-                options={optionOptions}
-                className="grid-cols-2"
-                optionClassName="h-6.5"
-              />
+              <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-panel-2/60 p-1">
+                {optionOptions.map((option) => {
+                  const isActive = option.value === optionType;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setOptionType(option.value)}
+                      className={
+                        isActive
+                          ? "h-7 rounded-lg bg-white text-sm font-medium text-black"
+                          : "h-7 rounded-lg text-sm font-medium text-muted"
+                      }
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -555,14 +566,14 @@ export function ForwardInterface() {
                       setCalendarMonth(parseIsoDate(expiryDate));
                       setIsCalendarOpen((prev) => !prev);
                     }}
-                    className="flex h-[44px] w-full items-center justify-between rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 text-[14px] text-[var(--inst-text)]"
+                    className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-panel-2/50 px-4 text-sm text-text"
                   >
                     <span>{formatDateInput(expiryDate)}</span>
-                    <Calendar className="h-4 w-4 text-[var(--inst-muted)]" />
+                    <Calendar className="h-4 w-4 text-muted" />
                   </button>
 
                   {isCalendarOpen ? (
-                    <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[300px] rounded-[28px] border border-[var(--inst-border)] bg-[var(--inst-surface)] p-4">
+                    <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[300px] rounded-2xl border border-border/70 bg-panel p-4 shadow-panel backdrop-blur-panel">
                       <div className="mb-3 flex items-center justify-between px-2">
                         <button
                           type="button"
@@ -571,12 +582,12 @@ export function ForwardInterface() {
                               new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1)
                             )
                           }
-                          className="h-8 w-8 rounded-full text-[24px] leading-none text-[var(--inst-text)]"
+                          className="h-8 w-8 rounded-full text-[24px] leading-none text-text"
                           aria-label="Previous month"
                         >
                           ‹
                         </button>
-                        <div className="text-[16px] font-semibold text-[var(--inst-text)]">
+                        <div className="text-[16px] font-semibold text-text">
                           {calendarMonth.toLocaleDateString("en-US", {
                             month: "long",
                             year: "numeric",
@@ -589,14 +600,14 @@ export function ForwardInterface() {
                               new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1)
                             )
                           }
-                          className="h-8 w-8 rounded-full text-[24px] leading-none text-[var(--inst-text)]"
+                          className="h-8 w-8 rounded-full text-[24px] leading-none text-text"
                           aria-label="Next month"
                         >
                           ›
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-[var(--inst-muted)]">
+                      <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-muted">
                         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
                           <div key={day} className="py-1">
                             {day}
@@ -628,10 +639,10 @@ export function ForwardInterface() {
                               }}
                               className={`mx-auto h-8 w-8 rounded-[9px] text-[14px] ${
                                 isSelected
-                                  ? "bg-[#111827] font-semibold text-white"
+                                  ? "bg-white font-semibold text-black"
                                   : isDisabled
-                                    ? "text-[#b7b9c4]"
-                                    : "text-[var(--inst-text)]"
+                                    ? "text-muted/50"
+                                    : "text-text"
                               }`}
                             >
                               {inMonth ? dayNumber : ""}
@@ -649,41 +660,45 @@ export function ForwardInterface() {
 
               <div>
                 <FieldLabel htmlFor="strike">Strike</FieldLabel>
-                <TextInput
+                <div className="relative">
+                <TextField
                   id="strike"
                   value={strike}
                   onChange={(event) => setStrike(event.target.value)}
                   placeholder="2,200.00"
-                  rightAdornment={
-                    <span className="whitespace-nowrap text-[9px] leading-none font-semibold text-[var(--inst-muted)]">
-                      {quoteCurrency} per {baseCurrency}
-                    </span>
-                  }
+                  className="pr-28"
                 />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-[9px] leading-none font-semibold text-muted">
+                  {quoteCurrency} per {baseCurrency}
+                </span>
+                </div>
                 <HelperText className="mt-1 text-[11px]">{moneyness}</HelperText>
               </div>
             </div>
 
             <div>
               <FieldLabel htmlFor="notional">Notional</FieldLabel>
-              <TextInput
+              <div className="relative">
+              <TextField
                 id="notional"
                 value={notional}
                 onChange={(event) => setNotional(event.target.value)}
                 placeholder="10,000"
-                leftAdornment={<span className="text-[14px]">$</span>}
-                rightAdornment={
-                  <span className="text-[10px] font-semibold text-[var(--inst-muted)]">{baseCurrency}</span>
-                }
+                className="px-8 pr-14"
               />
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted">
+                {baseCurrency}
+              </span>
+              </div>
             </div>
 
-            <div className="border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2 text-[11px] text-[var(--inst-muted)]">
+            <div className="rounded-xl border border-border/70 bg-panel-2/50 px-3 py-2 text-[11px] text-muted">
               <div className="flex items-center justify-between">
                 <span>Indicative all-in premium</span>
                 <span>Indicative</span>
               </div>
-              <div className="mt-1 text-[16px] font-semibold text-[var(--inst-text)]">
+              <div className="mt-1 text-[16px] font-semibold text-text">
                 {showIndicativePremium ? toMoney(indicativePremium) : "—"}
               </div>
               <div className="mt-1">
@@ -695,7 +710,7 @@ export function ForwardInterface() {
               </div>
             </div>
 
-            <PrimaryButton type="button" onClick={requestQuotes} className="h-[42px]">
+            <PrimaryButton type="button" onClick={requestQuotes}>
               Request Quotes
             </PrimaryButton>
             <HelperText className="text-[11px]">Quotes valid for 30s after response.</HelperText>
@@ -703,33 +718,33 @@ export function ForwardInterface() {
             <button
               type="button"
               onClick={clearForm}
-              className="text-left text-[12px] font-semibold text-[var(--inst-muted)]"
+              className="text-left text-[12px] font-semibold text-muted"
             >
               Clear
             </button>
         </section>
 
           {selectedQuote ? (
-            <section className="space-y-1 rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] p-1.5">
-              <div className="text-[11px] font-semibold tracking-[0.04em] text-[var(--inst-muted)]">CONFIRMATION</div>
+            <section className="space-y-1 rounded-xl border border-border/70 bg-panel-2/50 p-2">
+              <div className="text-[11px] font-semibold tracking-[0.04em] text-muted">CONFIRMATION</div>
 
               <div className="grid grid-cols-2 gap-y-1 text-[12px]">
-                <span className="text-[var(--inst-muted)]">Type</span>
-                <span className="text-right text-[var(--inst-text)]">{optionType.toUpperCase()}</span>
-                <span className="text-[var(--inst-muted)]">Pair</span>
-                <span className="text-right text-[var(--inst-text)]">{pair}</span>
-                <span className="text-[var(--inst-muted)]">Notional ({baseCurrency})</span>
-                <span className="text-right text-[var(--inst-text)]">{toMoney(parsedNotional)}</span>
-                <span className="text-[var(--inst-muted)]">Expiry</span>
-                <span className="text-right text-[var(--inst-text)]">{displayExpiry}</span>
-                <span className="text-[var(--inst-muted)]">Strike</span>
-                <span className="text-right text-[var(--inst-text)]">{strike || "-"}</span>
-                <span className="text-[var(--inst-muted)]">Premium</span>
-                <span className="text-right text-[var(--inst-text)]">{toMoney(selectedQuote.premium)}</span>
-                <span className="text-[var(--inst-muted)]">Fees</span>
-                <span className="text-right text-[var(--inst-text)]">{toMoney(selectedQuote.fees)}</span>
-                <span className="font-semibold text-[var(--inst-text)]">Total cost</span>
-                <span className="text-right font-semibold text-[var(--inst-text)]">
+                <span className="text-muted">Type</span>
+                <span className="text-right text-text">{optionType.toUpperCase()}</span>
+                <span className="text-muted">Pair</span>
+                <span className="text-right text-text">{pair}</span>
+                <span className="text-muted">Notional ({baseCurrency})</span>
+                <span className="text-right text-text">{toMoney(parsedNotional)}</span>
+                <span className="text-muted">Expiry</span>
+                <span className="text-right text-text">{displayExpiry}</span>
+                <span className="text-muted">Strike</span>
+                <span className="text-right text-text">{strike || "-"}</span>
+                <span className="text-muted">Premium</span>
+                <span className="text-right text-text">{toMoney(selectedQuote.premium)}</span>
+                <span className="text-muted">Fees</span>
+                <span className="text-right text-text">{toMoney(selectedQuote.fees)}</span>
+                <span className="font-semibold text-text">Total cost</span>
+                <span className="text-right font-semibold text-text">
                   {toMoney(selectedQuote.premium + selectedQuote.fees)}
                 </span>
               </div>
@@ -739,7 +754,6 @@ export function ForwardInterface() {
                   <PrimaryButton
                     type="button"
                     onClick={executeTrade}
-                    className="h-[42px]"
                     disabled={state === "SIGNING" || state === "PENDING" || state === "DONE"}
                   >
                     {state === "SIGNING"
@@ -757,11 +771,11 @@ export function ForwardInterface() {
           ) : null}
 
           {errorMessage ? (
-            <div className="rounded-[9px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2 text-[11px] text-[var(--inst-text)]">
+            <div className="rounded-lg border border-border/70 bg-panel-2/50 px-3 py-2 text-[11px] text-text">
               {errorMessage}
             </div>
           ) : null}
-      </SurfaceCard>
+      </Panel>
       <OptionSidePanel
         pair={pair}
         optionType={optionType}
@@ -775,24 +789,24 @@ export function ForwardInterface() {
 
       {isQuotePopupOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4">
-          <div className="w-full max-w-[360px] rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-surface)] p-4 shadow-[0_2px_8px_rgba(15,23,42,0.08)]">
+          <div className="w-full max-w-[360px] rounded-2xl border border-border/70 bg-panel p-4 shadow-panel backdrop-blur-panel">
             <div className="flex items-center justify-between">
-              <div className="text-[12px] font-semibold text-[var(--inst-label)]">Quotes</div>
+              <div className="text-[12px] font-semibold text-muted">Quotes</div>
               <button
                 type="button"
                 onClick={() => setIsQuotePopupOpen(false)}
-                className="text-[12px] font-semibold text-[var(--inst-muted)]"
+                className="text-[12px] font-semibold text-muted"
               >
                 Close
               </button>
             </div>
 
-            <div className="mt-2 text-[11px] text-[var(--inst-muted)]">
+            <div className="mt-2 text-[11px] text-muted">
               {windowRemaining > 0 ? `Expires in ${windowRemaining}s` : "Quotes expired"}
             </div>
 
             {sortedQuotes.length === 0 ? (
-              <div className="mt-3 rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-[12px] text-[var(--inst-muted)]">
+              <div className="mt-3 rounded-xl border border-border/70 bg-panel-2/50 px-3 py-2.5 text-[12px] text-muted">
                 No quotes yet.
               </div>
             ) : null}
@@ -801,20 +815,20 @@ export function ForwardInterface() {
               {sortedQuotes.map((quote) => (
                 <div
                   key={quote.id}
-                  className="rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-3 py-2.5 text-center"
+                  className="rounded-xl border border-border/70 bg-panel-2/50 px-3 py-2.5 text-center"
                 >
-                  <div className="text-[13px] font-semibold text-[var(--inst-text)]">{quote.maker}</div>
-                  <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Spread {quote.spreadBps} bps</div>
-                  <div className="mt-1 text-[18px] font-semibold text-[var(--inst-text)]">
+                  <div className="text-[13px] font-semibold text-text">{quote.maker}</div>
+                  <div className="mt-0.5 text-[11px] text-muted">Spread {quote.spreadBps} bps</div>
+                  <div className="mt-1 text-[18px] font-semibold text-text">
                     {toMoney(quote.premium)}
                   </div>
-                  <div className="mt-0.5 text-[11px] text-[var(--inst-muted)]">Fees {toMoney(quote.fees)}</div>
-                  <div className="mt-1 text-[11px] text-[var(--inst-muted)]">TTL: {windowRemaining}s</div>
+                  <div className="mt-0.5 text-[11px] text-muted">Fees {toMoney(quote.fees)}</div>
+                  <div className="mt-1 text-[11px] text-muted">TTL: {windowRemaining}s</div>
                   <button
                     type="button"
                     onClick={() => selectQuote(quote.id)}
                     disabled={expired || state === "SIGNING" || state === "PENDING" || state === "DONE"}
-                    className="mt-2 h-8 w-full rounded-[9px] border border-[var(--inst-border)] px-3 text-[12px] font-semibold text-[var(--inst-text)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-2 h-8 w-full rounded-lg border border-border/70 px-3 text-[12px] font-semibold text-text disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Accept
                   </button>

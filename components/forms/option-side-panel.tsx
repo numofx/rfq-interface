@@ -12,7 +12,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { SegmentedControl, SurfaceCard } from "@/components/ui/rfq-primitives";
+import { Panel } from "@/components/ui/panel";
+import { SegmentedControl } from "@/components/ui/rfq-primitives";
 
 type OptionType = "call" | "put";
 type PanelTab = "chart" | "payoff";
@@ -105,7 +106,7 @@ export function OptionSidePanel({
   const hasLiveHistory = Boolean(spotHistory?.length && spotHistory.length >= 2);
 
   const historyData = useMemo(() => {
-    if (hasLiveHistory) return spotHistory;
+    if (hasLiveHistory) return spotHistory ?? buildDefaultHistory(safeSpot);
     return buildDefaultHistory(safeSpot);
   }, [hasLiveHistory, safeSpot, spotHistory]);
 
@@ -144,47 +145,47 @@ export function OptionSidePanel({
   );
 
   return (
-    <SurfaceCard className="space-y-3 p-3 sm:p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+    <Panel className="space-y-4 p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-[15px] font-semibold text-[var(--inst-text)]">
+        <h3 className="text-[15px] font-semibold text-text">
           {pair} {optionType === "call" ? "Call" : "Put"}
         </h3>
-        <span className="rounded-full border border-[var(--inst-border)] bg-[var(--inst-input)] px-2 py-0.5 text-[10px] font-semibold text-[var(--inst-label)]">
+        <span className="rounded-full border border-border/70 bg-panel-2/60 px-2 py-0.5 text-[10px] font-semibold text-muted">
           {typeof daysToExpiry === "number" ? `${daysToExpiry}D` : "—"}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-1">
-        <div className="rounded-[10px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-2.5 py-2">
-          <div className="text-[10px] font-semibold text-[var(--inst-muted)]">Spot (NGN per USD)</div>
-          <div className="mt-0.5 text-[14px] font-semibold text-[var(--inst-text)]">
+        <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+          <div className="text-[10px] font-semibold text-muted">Spot (NGN per USD)</div>
+          <div className="mt-0.5 text-[14px] font-semibold text-text">
             {hasSpot ? formatTwo(safeSpot) : "—"}
           </div>
         </div>
-        <div className="rounded-[10px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-2.5 py-2">
-          <div className="text-[10px] font-semibold text-[var(--inst-muted)]">Strike</div>
-          <div className="mt-0.5 text-[14px] font-semibold text-[var(--inst-text)]">{formatTwo(safeStrike)}</div>
+        <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+          <div className="text-[10px] font-semibold text-muted">Strike</div>
+          <div className="mt-0.5 text-[14px] font-semibold text-text">{formatTwo(safeStrike)}</div>
         </div>
-        <div className="rounded-[10px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-2.5 py-2">
-          <div className="text-[10px] font-semibold text-[var(--inst-muted)]">OTM/ITM %</div>
-          <div className="mt-0.5 text-[14px] font-semibold text-[var(--inst-text)]">{moneyness}</div>
+        <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+          <div className="text-[10px] font-semibold text-muted">OTM/ITM %</div>
+          <div className="mt-0.5 text-[14px] font-semibold text-text">{moneyness}</div>
         </div>
-        <div className="rounded-[10px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-2.5 py-2">
-          <div className="text-[10px] font-semibold text-[var(--inst-muted)]">Breakeven</div>
-          <div className="mt-0.5 text-[14px] font-semibold text-[var(--inst-text)]">
+        <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+          <div className="text-[10px] font-semibold text-muted">Breakeven</div>
+          <div className="mt-0.5 text-[14px] font-semibold text-text">
             {breakeven ? formatTwo(breakeven) : "—"}
           </div>
         </div>
       </div>
 
-      <div className="h-[260px] rounded-[12px] border border-[var(--inst-border)] bg-[var(--inst-input)] px-2 py-2">
+      <div className="h-[260px] rounded-[12px] border border-border/70 bg-transparent px-2 py-2">
         <ResponsiveContainer width="100%" height="100%">
           {activeTab === "chart" ? (
             <LineChart data={historyData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
-              <CartesianGrid stroke="rgba(143, 144, 153, 0.24)" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
               <XAxis
                 dataKey="t"
-                tick={{ fontSize: 10, fill: "var(--inst-muted)" }}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
                 tickFormatter={(value: number) => {
                   const date = new Date(value);
                   return hasLiveHistory
@@ -196,7 +197,7 @@ export function OptionSidePanel({
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: "var(--inst-muted)" }}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
                 tickFormatter={(value: number) => formatWhole(value)}
                 domain={[yMin, yMax]}
                 width={52}
@@ -206,10 +207,10 @@ export function OptionSidePanel({
               <Tooltip
                 contentStyle={{
                   borderRadius: 10,
-                  border: "1px solid var(--inst-border)",
-                  backgroundColor: "var(--inst-surface)",
+                  border: "1px solid hsl(var(--border) / 0.7)",
+                  backgroundColor: "hsl(var(--panel))",
                   fontSize: 11,
-                  color: "var(--inst-text)",
+                  color: "hsl(var(--text))",
                 }}
                 formatter={(value: number) => [`${formatTwo(value)} NGN/USD`, "Spot"]}
                 labelFormatter={(value: number, payload) => {
@@ -231,28 +232,28 @@ export function OptionSidePanel({
               <ReferenceArea
                 y1={optionType === "call" ? positiveZoneLine : yMin}
                 y2={optionType === "call" ? yMax : positiveZoneLine}
-                fill="rgba(25, 135, 84, 0.10)"
+                fill="rgba(255,255,255,0.04)"
               />
               <ReferenceLine
                 y={safeStrike}
-                stroke="#6b7280"
+                stroke="hsl(var(--muted))"
                 strokeDasharray="4 4"
                 label={{
                   value: `Strike ${formatWhole(safeStrike)}`,
                   position: "insideTopRight",
-                  fill: "#6b7280",
+                  fill: "hsl(var(--muted))",
                   fontSize: 10,
                 }}
               />
               {breakeven ? (
                 <ReferenceLine
                   y={breakeven}
-                  stroke="#1f2937"
+                  stroke="hsl(var(--muted))"
                   strokeDasharray="3 3"
                   label={{
                     value: "B/E",
                     position: "insideTopRight",
-                    fill: "#1f2937",
+                    fill: "hsl(var(--muted))",
                     fontSize: 10,
                   }}
                 />
@@ -260,26 +261,26 @@ export function OptionSidePanel({
               <Line
                 type="monotone"
                 dataKey="spot"
-                stroke="#111118"
+                stroke="hsl(var(--brand))"
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 3, fill: "#111118" }}
+                activeDot={{ r: 3, fill: "hsl(var(--brand))" }}
               />
             </LineChart>
           ) : (
             <LineChart data={payoffData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
-              <CartesianGrid stroke="rgba(143, 144, 153, 0.24)" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
               <XAxis
                 dataKey="spot"
                 type="number"
                 domain={["dataMin", "dataMax"]}
-                tick={{ fontSize: 10, fill: "var(--inst-muted)" }}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
                 tickFormatter={(value: number) => formatWhole(value)}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: "var(--inst-muted)" }}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
                 tickFormatter={(value: number) => formatTwo(value)}
                 width={52}
                 axisLine={false}
@@ -288,24 +289,24 @@ export function OptionSidePanel({
               <Tooltip
                 contentStyle={{
                   borderRadius: 10,
-                  border: "1px solid var(--inst-border)",
-                  backgroundColor: "var(--inst-surface)",
+                  border: "1px solid hsl(var(--border) / 0.7)",
+                  backgroundColor: "hsl(var(--panel))",
                   fontSize: 11,
-                  color: "var(--inst-text)",
+                  color: "hsl(var(--text))",
                 }}
                 labelFormatter={(value) => `Spot ${formatTwo(Number(value))}`}
                 formatter={(value: number) => [`${formatTwo(value)} USD`, "Profit @ Expiry"]}
               />
-              <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="4 4" />
+              <ReferenceLine y={0} stroke="hsl(var(--muted))" strokeDasharray="4 4" />
               {hasSpot ? (
                 <ReferenceLine
                   x={safeSpot}
-                  stroke="#111118"
+                  stroke="hsl(var(--brand))"
                   strokeDasharray="3 3"
                   label={{
                     value: "Current Spot",
                     position: "insideTopRight",
-                    fill: "#111118",
+                    fill: "hsl(var(--muted))",
                     fontSize: 10,
                   }}
                 />
@@ -313,10 +314,10 @@ export function OptionSidePanel({
               <Line
                 type="monotone"
                 dataKey="profit"
-                stroke="#111118"
+                stroke="hsl(var(--brand))"
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 3, fill: "#111118" }}
+                activeDot={{ r: 3, fill: "hsl(var(--brand))" }}
               />
             </LineChart>
           )}
@@ -334,11 +335,11 @@ export function OptionSidePanel({
         optionClassName="h-6 text-[12px]"
       />
 
-      <p className="text-[11px] leading-[1.35] text-[var(--inst-muted)]">
+      <p className="text-[11px] leading-[1.35] text-muted">
         {optionType === "call"
           ? "Pays if USD rises above Strike at expiry (NGN weakens)."
           : "Pays if USD falls below Strike at expiry (NGN strengthens)."}
       </p>
-    </SurfaceCard>
+    </Panel>
   );
 }

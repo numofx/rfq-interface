@@ -484,7 +484,7 @@ export default function HomePage() {
     <AppLayout
       headerCenter={headerTabs}
       headerRight={headerRight}
-      logoSrc={isPremiumAuthView ? "/numo_logo_white.png" : "/numo.png"}
+      logoSrc="/numo_logo_white.png"
       hideLogo={isPremiumAuthView}
       showLogoSuffix={false}
       logoSize="large"
@@ -723,7 +723,7 @@ export default function HomePage() {
                 <div className="space-y-5 rounded-[16px] border border-white/10 bg-[#0b0f14]/80 px-10 pt-10 pb-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md">
                   <div className="space-y-3">
                     <div className="flex justify-center">
-                      <div className="relative h-9 w-[136px]">
+                      <div className="relative h-11 w-[160px]">
                         <Image src="/numo_logo_white.png" alt="Numo" fill className="object-contain" />
                       </div>
                     </div>
@@ -844,7 +844,7 @@ export default function HomePage() {
                 <div className="space-y-5 rounded-[16px] border border-white/10 bg-[#0b0f14]/80 px-10 pt-10 pb-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md">
                   <div className="space-y-3">
                     <div className="flex justify-center">
-                      <div className="relative h-9 w-[136px]">
+                      <div className="relative h-11 w-[160px]">
                         <Image src="/numo_logo_white.png" alt="Numo" fill className="object-contain" />
                       </div>
                     </div>

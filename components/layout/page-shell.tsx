@@ -24,7 +24,7 @@ export function AppLayout({
   headerCenter,
   headerRight,
   logoLink = "/",
-  logoSrc = "/numo.png",
+  logoSrc = "/numo_logo_white.png",
   hideLogo = false,
   showLogoSuffix = true,
   logoSize = "default",
@@ -32,9 +32,9 @@ export function AppLayout({
 }: AppLayoutProps) {
   const logoContainerClass = logoSize === "large" ? "-mr-8 h-[39px] w-[142px]" : "-mr-6 h-[31px] w-[114px]";
   return (
-    <div className={cn("min-h-screen bg-[#f3f3f4] text-[#15151b]", className)}>
+    <div className={cn("min-h-screen bg-bg text-text", className)}>
       <div className="flex min-h-screen flex-col">
-        <header className={cn(headerHeightClass, "shrink-0")}>
+        <header className={cn(headerHeightClass, "relative z-50 shrink-0")}>
           <div className={cn(containerClass, "relative flex h-full items-center translate-y-6")}>
           {hideLogo ? null : (
             <Link href={logoLink} className="shrink-0">
@@ -44,8 +44,8 @@ export function AppLayout({
                 </div>
                 {showLogoSuffix ? (
                   <>
-                    <div className="ml-0.5 mr-1 h-6 w-px bg-[#d6d7dd]" />
-                    <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-[#18233a]">RFQ</p>
+                    <div className="ml-0.5 mr-1 h-6 w-px bg-border/70" />
+                    <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-text">RFQ</p>
                   </>
                 ) : null}
               </div>

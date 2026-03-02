@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ForwardInterface } from "@/components/forms/swap";
 import { AppLayout, CardWrapper, ContentLayout } from "@/components/layout/page-shell";
+import { AppBg } from "@/components/ui/app-bg";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AppPage() {
@@ -50,7 +51,7 @@ export default function AppPage() {
       <button
         type="button"
         onClick={() => setIsAccountMenuOpen((prev) => !prev)}
-        className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#e9e9ec] text-[#15151b] shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] hover:bg-[#e2e2e6]"
+        className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-border/70 bg-panel-2/70 text-text ring-1 ring-white/10 hover:bg-panel-2"
         aria-label="Open account menu"
         aria-expanded={isAccountMenuOpen}
       >
@@ -70,15 +71,15 @@ export default function AppPage() {
       </button>
 
       {isAccountMenuOpen ? (
-        <div className="absolute right-0 z-30 mt-2 w-[240px] rounded-[16px] border border-[#d9d9de] bg-[#f2f2f4] p-4 shadow-[0_16px_30px_rgba(0,0,0,0.12)]">
-          <p className="text-[15px] leading-none font-semibold text-[#15151b]">{accountEmail}</p>
-          <p className="mt-1.5 text-[13px] font-medium text-[#7b7d88]">{accountName}</p>
+        <div className="absolute right-0 z-30 mt-2 w-[240px] rounded-2xl border border-border/70 bg-panel p-4 shadow-panel backdrop-blur-panel">
+          <p className="text-[15px] leading-none font-semibold text-text">{accountEmail}</p>
+          <p className="mt-1.5 text-[13px] font-medium text-muted">{accountName}</p>
 
-          <div className="mt-3 border-t border-[#d7d8de] pt-3">
+          <div className="mt-3 border-t border-border/70 pt-3">
             <button
               type="button"
               onClick={() => setIsAccountMenuOpen(false)}
-              className="block text-[14px] font-medium text-[#15151b] hover:text-[#2b2c33] active:font-semibold"
+              className="block text-[14px] font-medium text-text hover:text-white active:font-semibold"
             >
               Manage account
             </button>
@@ -86,7 +87,7 @@ export default function AppPage() {
             <button
               type="button"
               onClick={() => setIsAccountMenuOpen(false)}
-              className="mt-2 block text-[14px] font-medium text-[#15151b] hover:text-[#2b2c33] active:font-semibold"
+              className="mt-2 block text-[14px] font-medium text-text hover:text-white active:font-semibold"
             >
               Transaction history
             </button>
@@ -94,7 +95,7 @@ export default function AppPage() {
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-2 block text-[14px] font-semibold text-[#c4362c] hover:text-[#ab2e25]"
+              className="mt-2 block text-[14px] font-semibold text-muted hover:text-text"
             >
               Log out
             </button>
@@ -105,12 +106,14 @@ export default function AppPage() {
   );
 
   return (
-    <AppLayout headerRight={headerRight}>
-      <ContentLayout variant="rfq">
-        <CardWrapper size="ticket" className="max-w-[980px]">
-          <ForwardInterface />
-        </CardWrapper>
-      </ContentLayout>
-    </AppLayout>
+    <AppBg>
+      <AppLayout headerRight={headerRight} className="bg-transparent text-text">
+        <ContentLayout variant="rfq">
+          <CardWrapper size="ticket" className="max-w-[980px]">
+            <ForwardInterface />
+          </CardWrapper>
+        </ContentLayout>
+      </AppLayout>
+    </AppBg>
   );
 }
