@@ -48,7 +48,7 @@ export function AppLayout({
                   {showLogoSuffix ? (
                     <>
                       <div className="ml-0.5 mr-1 h-6 w-px bg-border/70" />
-                      <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-text">RFQ</p>
+                      <p className="text-[20px] leading-none font-semibold tracking-[-0.02em] text-text">Exchange</p>
                     </>
                   ) : null}
                 </div>
