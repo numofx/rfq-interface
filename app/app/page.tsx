@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { ForwardInterface } from "@/components/forms/swap";
 import { AppLayout, CardWrapper, ContentLayout } from "@/components/layout/page-shell";
 import { AppBg } from "@/components/ui/app-bg";
+import { SegmentedTabs } from "@/components/ui/rfq-primitives";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AppPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"futures" | "options">("options");
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
@@ -105,12 +107,25 @@ export default function AppPage() {
     </div>
   );
 
+  const headerCenter = (
+    <div className="w-[220px]">
+      <SegmentedTabs
+        value={mode}
+        onChange={setMode}
+        options={[
+          { label: "Futures", value: "futures" },
+          { label: "Options", value: "options" },
+        ]}
+      />
+    </div>
+  );
+
   return (
     <AppBg>
-      <AppLayout headerRight={headerRight} className="bg-transparent text-text">
+      <AppLayout headerCenter={headerCenter} headerRight={headerRight} className="bg-transparent text-text">
         <ContentLayout variant="rfq">
           <CardWrapper size="ticket" className="max-w-[980px]">
-            <ForwardInterface />
+            <ForwardInterface mode={mode} />
           </CardWrapper>
         </ContentLayout>
       </AppLayout>

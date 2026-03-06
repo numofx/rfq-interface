@@ -112,6 +112,47 @@ export function SegmentedControl<T extends string>({
   );
 }
 
+interface SegmentedTabsProps<T extends string> {
+  value: T;
+  onChange: (value: T) => void;
+  options: ReadonlyArray<{ value: T; label: string }>;
+  className?: string;
+}
+
+export function SegmentedTabs<T extends string>({
+  value,
+  onChange,
+  options,
+  className,
+}: SegmentedTabsProps<T>) {
+  return (
+    <div
+      className={cn(
+        "grid h-9 w-full gap-1 rounded-full border border-border/70 bg-panel-2/80 p-1",
+        className
+      )}
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((option) => {
+        const isActive = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "h-7 rounded-full text-sm font-semibold transition-colors",
+              isActive ? "bg-white text-black" : "bg-zinc-800 text-zinc-300"
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 interface DropdownOption<T extends string> {
   value: T;
   label: string;

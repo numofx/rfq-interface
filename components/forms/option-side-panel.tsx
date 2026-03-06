@@ -15,6 +15,7 @@ import {
 import { Panel } from "@/components/ui/panel";
 import { SegmentedControl } from "@/components/ui/rfq-primitives";
 
+type ProductMode = "futures" | "options";
 type OptionType = "call" | "put";
 type PanelTab = "chart" | "payoff";
 
@@ -24,6 +25,7 @@ interface SpotHistoryPoint {
 }
 
 interface OptionSidePanelProps {
+  mode?: ProductMode;
   pair?: string;
   optionType: OptionType;
   spot: number | null;
@@ -89,6 +91,7 @@ function buildPayoffCurve({
 }
 
 export function OptionSidePanel({
+  mode = "options",
   pair = "USD/NGN",
   optionType,
   spot,
@@ -148,7 +151,7 @@ export function OptionSidePanel({
     <Panel className="space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[15px] font-semibold text-text">
-          {pair} {optionType === "call" ? "Call" : "Put"}
+          {mode === "options" ? `${pair} ${optionType === "call" ? "Call" : "Put"}` : `${pair} Futures`}
         </h3>
         <span className="rounded-full border border-border/70 bg-panel-2/60 px-2 py-0.5 text-[10px] font-semibold text-muted">
           {typeof daysToExpiry === "number" ? `${daysToExpiry}D` : "—"}
