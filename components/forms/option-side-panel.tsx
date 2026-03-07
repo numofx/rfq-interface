@@ -5,7 +5,6 @@ import {
   CartesianGrid,
   Line,
   LineChart,
-  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -17,6 +16,7 @@ import { SegmentedControl } from "@/components/ui/rfq-primitives";
 
 type ProductMode = "futures" | "options";
 type OptionType = "call" | "put";
+type ForwardDirection = "buy_usd" | "sell_usd";
 type PanelTab = "chart" | "payoff";
 
 interface SpotHistoryPoint {
@@ -33,6 +33,13 @@ interface OptionSidePanelProps {
   daysToExpiry: number | null;
   premiumUSDC?: number;
   spotHistory?: SpotHistoryPoint[];
+  forwardDirection?: ForwardDirection;
+  tenorLabel?: string;
+  forwardRate?: number;
+  forwardPoints?: number;
+  hedgeCostPct?: number;
+  settlementAmount?: number;
+  notional?: number;
 }
 
 function formatWhole(value: number) {
@@ -40,12 +47,7 @@ function formatWhole(value: number) {
 }
 
 function formatTwo(value: number) {
-  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
-
-function formatSigned(value: number) {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${formatTwo(value)}`;
+  return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function buildDefaultHistory(spot: number, days = 90): SpotHistoryPoint[] {
@@ -58,16 +60,13 @@ function buildDefaultHistory(spot: number, days = 90): SpotHistoryPoint[] {
     const wave = Math.sin((days - i) / 9) * spot * 0.025;
     const trend = ((days - i) / days - 0.5) * spot * 0.03;
     const point = i === 0 ? spot : Math.max(0, spot + wave + trend);
-    data.push({
-      t: date.getTime(),
-      spot: point,
-    });
+    data.push({ t: date.getTime(), spot: point });
   }
 
   return data;
 }
 
-function buildPayoffCurve({
+function buildOptionPayoff({
   optionType,
   strike,
   premiumUSDC,
@@ -90,6 +89,21 @@ function buildPayoffCurve({
   });
 }
 
+function buildForwardCurve(baseSpot: number) {
+  const points = [
+    { tenor: "7D", points: 3.82 },
+    { tenor: "30D", points: 16.14 },
+    { tenor: "90D", points: 44.62 },
+    { tenor: "180D", points: 89.25 },
+    { tenor: "365D", points: 177.43 },
+  ];
+
+  return points.map((item) => ({
+    tenor: item.tenor,
+    forwardRate: baseSpot + item.points,
+  }));
+}
+
 export function OptionSidePanel({
   mode = "options",
   pair = "USD/NGN",
@@ -99,71 +113,229 @@ export function OptionSidePanel({
   daysToExpiry,
   premiumUSDC,
   spotHistory,
+  forwardDirection = "buy_usd",
+  tenorLabel = "30 Days",
+  forwardRate = 1402.18,
+  forwardPoints = 16.14,
+  hedgeCostPct = 1.16,
+  settlementAmount = 14_021_800,
+  notional = 10_000,
 }: OptionSidePanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>("chart");
   const hasSpot = typeof spot === "number" && Number.isFinite(spot) && spot > 0;
-  const safeSpot = hasSpot ? spot : Math.max(strike, 1);
+  const safeSpot = hasSpot ? (spot as number) : Math.max(strike || 1, 1);
+
+  const isForwardMode = mode === "futures";
+
+  const historyData = useMemo(() => {
+    if (spotHistory?.length && spotHistory.length >= 2) return spotHistory;
+    return buildDefaultHistory(safeSpot);
+  }, [safeSpot, spotHistory]);
+
+  const optionPayoffData = useMemo(
+    () =>
+      buildOptionPayoff({
+        optionType,
+        strike: strike > 0 ? strike : safeSpot,
+        premiumUSDC: typeof premiumUSDC === "number" ? premiumUSDC : 0,
+        spot: safeSpot,
+      }),
+    [optionType, strike, premiumUSDC, safeSpot]
+  );
+
+  const forwardCurveData = useMemo(() => buildForwardCurve(safeSpot || 1386.04), [safeSpot]);
+  const forwardCurveMin = Math.min(...forwardCurveData.map((d) => d.forwardRate));
+  const forwardCurveMax = Math.max(...forwardCurveData.map((d) => d.forwardRate));
+
+  const forwardPayoffData = useMemo(() => {
+    const floor = Math.max(1, forwardRate - 180);
+    const ceil = forwardRate + 180;
+    const steps = 55;
+    return Array.from({ length: steps }, (_, idx) => {
+      const spotAtExpiry = floor + ((ceil - floor) * idx) / (steps - 1);
+      const pnl = (forwardDirection === "buy_usd" ? spotAtExpiry - forwardRate : forwardRate - spotAtExpiry) * notional;
+      return { spotAtExpiry, pnl };
+    });
+  }, [forwardDirection, forwardRate, notional]);
+
+  if (isForwardMode) {
+    return (
+      <Panel className="space-y-4 p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-[15px] font-semibold text-text">USD/NGN Forward</h3>
+          </div>
+          <span className="inline-flex rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.04em] text-cyan-200">
+            PHYSICAL DELIVERY
+          </span>
+        </div>
+
+        <section className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+              <div className="text-[10px] font-semibold text-muted">Spot (NGN per USD)</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-text">{formatTwo(safeSpot)}</div>
+            </div>
+            <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+              <div className="text-[10px] font-semibold text-muted">Forward Rate</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-text">{formatTwo(forwardRate)}</div>
+            </div>
+            <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+              <div className="text-[10px] font-semibold text-muted">Forward Points</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-text">+{formatTwo(forwardPoints)}</div>
+            </div>
+            <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
+              <div className="text-[10px] font-semibold text-muted">Settlement Amount</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-text">₦{formatWhole(settlementAmount)}</div>
+            </div>
+          </div>
+        </section>
+
+        <div className="h-[260px] rounded-[12px] border border-border/70 bg-transparent px-2 py-2">
+          <ResponsiveContainer width="100%" height="100%">
+            {activeTab === "chart" ? (
+              <LineChart data={forwardCurveData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                <XAxis
+                  dataKey="tenor"
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
+                  tickFormatter={(value: number) => formatWhole(value)}
+                  domain={[forwardCurveMin - 20, forwardCurveMax + 20]}
+                  width={56}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 10,
+                    border: "1px solid hsl(var(--border) / 0.7)",
+                    backgroundColor: "hsl(var(--panel))",
+                    fontSize: 11,
+                    color: "hsl(var(--text))",
+                  }}
+                  formatter={(value: number) => [`${formatTwo(value)} NGN/USD`, "Forward Rate"]}
+                />
+                <ReferenceLine
+                  x={tenorLabel.replace(" Days", "D")}
+                  stroke="hsl(var(--brand))"
+                  strokeDasharray="3 3"
+                  label={{
+                    value: "Selected",
+                    position: "insideTopRight",
+                    fill: "hsl(var(--muted))",
+                    fontSize: 10,
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="forwardRate"
+                  stroke="hsl(var(--brand))"
+                  strokeWidth={2.2}
+                  dot={{ r: 3, fill: "hsl(var(--brand))" }}
+                  activeDot={{ r: 4, fill: "hsl(var(--brand))" }}
+                />
+              </LineChart>
+            ) : (
+              <LineChart data={forwardPayoffData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                <XAxis
+                  dataKey="spotAtExpiry"
+                  type="number"
+                  domain={["dataMin", "dataMax"]}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
+                  tickFormatter={(value: number) => formatWhole(value)}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
+                  tickFormatter={(value: number) => formatWhole(value)}
+                  width={56}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 10,
+                    border: "1px solid hsl(var(--border) / 0.7)",
+                    backgroundColor: "hsl(var(--panel))",
+                    fontSize: 11,
+                    color: "hsl(var(--text))",
+                  }}
+                  labelFormatter={(value) => `USD/NGN @ Expiry ${formatTwo(Number(value))}`}
+                  formatter={(value: number) => [`${formatWhole(value)} USD`, "PnL"]}
+                />
+                <ReferenceLine y={0} stroke="hsl(var(--muted))" strokeDasharray="4 4" />
+                <ReferenceLine
+                  x={forwardRate}
+                  stroke="hsl(var(--brand))"
+                  strokeDasharray="3 3"
+                  label={{
+                    value: "Locked Forward Rate",
+                    position: "insideTopRight",
+                    fill: "hsl(var(--muted))",
+                    fontSize: 10,
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pnl"
+                  stroke="hsl(var(--brand))"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 3, fill: "hsl(var(--brand))" }}
+                />
+              </LineChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+
+        <SegmentedControl
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            { value: "chart", label: "Forward Curve" },
+            { value: "payoff", label: "Payoff" },
+          ]}
+          className="grid-cols-2"
+          optionClassName="h-6 text-[12px]"
+        />
+      </Panel>
+    );
+  }
+
   const safeStrike = Number.isFinite(strike) && strike > 0 ? strike : safeSpot;
   const hasPremium = typeof premiumUSDC === "number" && Number.isFinite(premiumUSDC);
   const breakeven = hasPremium ? safeStrike + premiumUSDC : null;
-  const hasLiveHistory = Boolean(spotHistory?.length && spotHistory.length >= 2);
+  const moneyness = !hasSpot
+    ? "—"
+    : `${((Math.abs(safeStrike / safeSpot - 1) * 100) as number).toFixed(2)}% ${
+        optionType === "call" ? (safeStrike > safeSpot ? "OTM" : "ITM") : safeStrike < safeSpot ? "OTM" : "ITM"
+      }`;
 
-  const historyData = useMemo(() => {
-    if (hasLiveHistory) return spotHistory ?? buildDefaultHistory(safeSpot);
-    return buildDefaultHistory(safeSpot);
-  }, [hasLiveHistory, safeSpot, spotHistory]);
-
-  const moneyness = useMemo(() => {
-    if (!hasSpot || !safeStrike) return "—";
-    const ratio = safeStrike / safeSpot - 1;
-    const absRatio = Math.abs(ratio) * 100;
-    const bucket =
-      optionType === "call"
-        ? safeStrike > safeSpot
-          ? "OTM"
-          : "ITM"
-        : safeStrike < safeSpot
-          ? "OTM"
-          : "ITM";
-    return `${absRatio.toFixed(2)}% ${bucket}`;
-  }, [hasSpot, optionType, safeSpot, safeStrike]);
-
-  const positiveZoneLine = hasPremium ? (breakeven as number) : safeStrike;
-  const yValues = historyData.map((point) => point.spot).concat([safeStrike, positiveZoneLine]);
+  const yValues = historyData.map((point) => point.spot).concat([safeStrike, breakeven ?? safeStrike]);
   const yMinRaw = Math.min(...yValues);
   const yMaxRaw = Math.max(...yValues);
   const yPadding = Math.max(20, (yMaxRaw - yMinRaw) * 0.12);
-  const yMin = Math.max(0, yMinRaw - yPadding);
-  const yMax = yMaxRaw + yPadding;
-
-  const payoffData = useMemo(
-    () =>
-      buildPayoffCurve({
-        optionType,
-        strike: safeStrike,
-        premiumUSDC: hasPremium ? premiumUSDC : 0,
-        spot: safeSpot,
-      }),
-    [hasPremium, optionType, premiumUSDC, safeSpot, safeStrike]
-  );
 
   return (
     <Panel className="space-y-4 p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-[15px] font-semibold text-text">
-          {mode === "options" ? `${pair} ${optionType === "call" ? "Call" : "Put"}` : `${pair} Futures`}
-        </h3>
-        <span className="rounded-full border border-border/70 bg-panel-2/60 px-2 py-0.5 text-[10px] font-semibold text-muted">
-          {typeof daysToExpiry === "number" ? `${daysToExpiry}D` : "—"}
+        <h3 className="text-[15px] font-semibold text-text">{pair} {optionType === "call" ? "Call" : "Put"}</h3>
+        <span className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.04em] text-cyan-200">
+          PHYSICAL DELIVERY
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-1">
         <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
           <div className="text-[10px] font-semibold text-muted">Spot (NGN per USD)</div>
-          <div className="mt-0.5 text-[14px] font-semibold text-text">
-            {hasSpot ? formatTwo(safeSpot) : "—"}
-          </div>
+          <div className="mt-0.5 text-[14px] font-semibold text-text">{hasSpot ? formatTwo(safeSpot) : "—"}</div>
         </div>
         <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
           <div className="text-[10px] font-semibold text-muted">Strike</div>
@@ -175,9 +347,7 @@ export function OptionSidePanel({
         </div>
         <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
           <div className="text-[10px] font-semibold text-muted">Breakeven</div>
-          <div className="mt-0.5 text-[14px] font-semibold text-text">
-            {breakeven ? formatTwo(breakeven) : "—"}
-          </div>
+          <div className="mt-0.5 text-[14px] font-semibold text-text">{breakeven ? formatTwo(breakeven) : "—"}</div>
         </div>
       </div>
 
@@ -189,12 +359,7 @@ export function OptionSidePanel({
               <XAxis
                 dataKey="t"
                 tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
-                tickFormatter={(value: number) => {
-                  const date = new Date(value);
-                  return hasLiveHistory
-                    ? date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-                    : date.toISOString().slice(5, 10);
-                }}
+                tickFormatter={(value: number) => new Date(value).toISOString().slice(5, 10)}
                 minTickGap={26}
                 axisLine={false}
                 tickLine={false}
@@ -202,7 +367,7 @@ export function OptionSidePanel({
               <YAxis
                 tick={{ fontSize: 10, fill: "hsl(var(--muted))" }}
                 tickFormatter={(value: number) => formatWhole(value)}
-                domain={[yMin, yMax]}
+                domain={[Math.max(0, yMinRaw - yPadding), yMaxRaw + yPadding]}
                 width={52}
                 axisLine={false}
                 tickLine={false}
@@ -216,51 +381,9 @@ export function OptionSidePanel({
                   color: "hsl(var(--text))",
                 }}
                 formatter={(value: number) => [`${formatTwo(value)} NGN/USD`, "Spot"]}
-                labelFormatter={(value: number, payload) => {
-                  const spotPoint = payload[0]?.payload?.spot as number | undefined;
-                  const dist = typeof spotPoint === "number" ? spotPoint - safeStrike : 0;
-                  const date = new Date(value);
-                  const label = hasLiveHistory
-                    ? date.toLocaleString("en-US", {
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })
-                    : date.toISOString().slice(0, 10);
-                  return `${label}  |  Dist: ${formatSigned(dist)} to strike`;
-                }}
               />
-              <ReferenceArea
-                y1={optionType === "call" ? positiveZoneLine : yMin}
-                y2={optionType === "call" ? yMax : positiveZoneLine}
-                fill="rgba(255,255,255,0.04)"
-              />
-              <ReferenceLine
-                y={safeStrike}
-                stroke="hsl(var(--muted))"
-                strokeDasharray="4 4"
-                label={{
-                  value: `Strike ${formatWhole(safeStrike)}`,
-                  position: "insideTopRight",
-                  fill: "hsl(var(--muted))",
-                  fontSize: 10,
-                }}
-              />
-              {breakeven ? (
-                <ReferenceLine
-                  y={breakeven}
-                  stroke="hsl(var(--muted))"
-                  strokeDasharray="3 3"
-                  label={{
-                    value: "B/E",
-                    position: "insideTopRight",
-                    fill: "hsl(var(--muted))",
-                    fontSize: 10,
-                  }}
-                />
-              ) : null}
+              <ReferenceLine y={safeStrike} stroke="hsl(var(--muted))" strokeDasharray="4 4" />
+              {breakeven ? <ReferenceLine y={breakeven} stroke="hsl(var(--muted))" strokeDasharray="3 3" /> : null}
               <Line
                 type="monotone"
                 dataKey="spot"
@@ -271,7 +394,7 @@ export function OptionSidePanel({
               />
             </LineChart>
           ) : (
-            <LineChart data={payoffData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
+            <LineChart data={optionPayoffData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
               <XAxis
                 dataKey="spot"
@@ -301,19 +424,6 @@ export function OptionSidePanel({
                 formatter={(value: number) => [`${formatTwo(value)} USD`, "Profit @ Expiry"]}
               />
               <ReferenceLine y={0} stroke="hsl(var(--muted))" strokeDasharray="4 4" />
-              {hasSpot ? (
-                <ReferenceLine
-                  x={safeSpot}
-                  stroke="hsl(var(--brand))"
-                  strokeDasharray="3 3"
-                  label={{
-                    value: "Current Spot",
-                    position: "insideTopRight",
-                    fill: "hsl(var(--muted))",
-                    fontSize: 10,
-                  }}
-                />
-              ) : null}
               <Line
                 type="monotone"
                 dataKey="profit"

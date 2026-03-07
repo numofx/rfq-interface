@@ -12,6 +12,7 @@ import {
   DropdownSelect,
   FieldLabel,
   HelperText,
+  SegmentedControl,
 } from "@/components/ui/rfq-primitives";
 import { TextField } from "@/components/ui/text-field";
 
@@ -28,6 +29,7 @@ type RFQState =
 type Pair = "USD/NGN" | "USD/KES";
 type ProductMode = "futures" | "options";
 type OptionType = "call" | "put";
+type ForwardDirection = "buy_usd" | "sell_usd";
 type SpotHistoryPoint = { t: number; spot: number };
 
 interface Quote {
@@ -88,6 +90,20 @@ const optionOptions: ReadonlyArray<{ value: OptionType; label: string }> = [
   { value: "call", label: "Call" },
   { value: "put", label: "Put" },
 ] as const;
+const forwardPointsByTenor: Record<"7D" | "30D" | "90D" | "180D" | "365D", number> = {
+  "7D": 3.82,
+  "30D": 16.14,
+  "90D": 44.62,
+  "180D": 89.25,
+  "365D": 177.43,
+};
+const hedgeCostByTenor: Record<"7D" | "30D" | "90D" | "180D" | "365D", number> = {
+  "7D": 0.42,
+  "30D": 1.16,
+  "90D": 2.08,
+  "180D": 2.95,
+  "365D": 4.12,
+};
 
 const makers = ["Maker A", "Maker B", "Maker C", "Maker D"] as const;
 
@@ -183,6 +199,7 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
   const [state, setState] = useState<RFQState>("IDLE");
   const [pair, setPair] = useState<Pair>("USD/NGN");
   const [optionType, setOptionType] = useState<OptionType>("call");
+  const [forwardDirection, setForwardDirection] = useState<ForwardDirection>("buy_usd");
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
@@ -254,6 +271,21 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
     const diffMs = parseIsoDate(expiryDate).getTime() - Date.now();
     return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
   }, [expiryDate]);
+  const forwardSpot = 1386.04;
+  const forwardTenorBucket = useMemo(() => {
+    const days = typeof expiryCountdownDays === "number" ? expiryCountdownDays : 30;
+    const buckets = [7, 30, 90, 180, 365] as const;
+    const nearest = buckets.reduce((best, current) =>
+      Math.abs(current - days) < Math.abs(best - days) ? current : best
+    );
+    return `${nearest}D` as "7D" | "30D" | "90D" | "180D" | "365D";
+  }, [expiryCountdownDays]);
+  const forwardPoints = forwardPointsByTenor[forwardTenorBucket];
+  const forwardRate = forwardSpot + forwardPoints;
+  const hedgeCostPct = hedgeCostByTenor[forwardTenorBucket];
+  const settlementAmount = parsedNotional * forwardRate;
+  const forwardTenorLabel = `${typeof expiryCountdownDays === "number" ? expiryCountdownDays : 30} Days`;
+  const displaySpot = mode === "futures" ? forwardSpot : hasValidSpot ? spot : null;
   const moneyness = useMemo(() => {
     if (mode !== "options") return "—";
     if (!hasValidSpot || !parsedStrike) return "—";
@@ -471,6 +503,7 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
     setState("IDLE");
     setPair("USD/NGN");
     setOptionType("call");
+    setForwardDirection("buy_usd");
     const resetExpiry = toIsoDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     setExpiryDate(resetExpiry);
     setCalendarMonth(parseIsoDate(resetExpiry));
@@ -524,48 +557,22 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
       <div className="grid w-full max-w-[980px] gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
       <Panel className="space-y-3 p-6">
         <section className="space-y-1">
-            <div>
-              <FieldLabel htmlFor="pair">Pair</FieldLabel>
-              <DropdownSelect
-                value={pair}
-                options={pairOptions}
-                onChange={setPair}
-              />
-              <HelperText className="mt-1 text-[11px]">
-                Spot:{" "}
-                <span className="text-text">
-                  {hasValidSpot ? spot.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—"}
-                </span>{" "}
-                {quoteCurrency} per {baseCurrency}
-              </HelperText>
-            </div>
-
-            {mode === "options" ? (
+          {mode === "futures" ? (
+            <>
               <div>
-                <FieldLabel>Option Type</FieldLabel>
-                <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-panel-2/60 p-1">
-                  {optionOptions.map((option) => {
-                    const isActive = option.value === optionType;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setOptionType(option.value)}
-                        className={
-                          isActive
-                            ? "h-7 rounded-lg bg-white text-sm font-medium text-black"
-                            : "h-7 rounded-lg text-sm font-medium text-muted"
-                        }
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <FieldLabel htmlFor="pair">Pair</FieldLabel>
+                <DropdownSelect
+                  value={pair}
+                  options={pairOptions}
+                  onChange={setPair}
+                />
+                <HelperText className="mt-1 text-[11px]">
+                  Spot:{" "}
+                  <span className="text-text">{forwardSpot.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>{" "}
+                  NGN per USD
+                </HelperText>
               </div>
-            ) : null}
 
-            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
               <div>
                 <FieldLabel htmlFor="expiry">Expiry</FieldLabel>
                 <div ref={calendarRef} className="relative">
@@ -668,44 +675,232 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
                 </HelperText>
               </div>
 
-              {mode === "options" ? (
+              <div>
+                <FieldLabel htmlFor="notional">Notional</FieldLabel>
+                <div className="relative">
+                  <TextField
+                    id="notional"
+                    value={notional}
+                    onChange={(event) => setNotional(event.target.value)}
+                    placeholder="10,000"
+                    className="px-8 pr-14"
+                  />
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted">
+                    USD
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/70 bg-panel-2/50 px-3 py-2 text-[11px] text-muted">
+                <div className="flex items-center justify-between">
+                  <span>Indicative forward rate</span>
+                  <span>Indicative</span>
+                </div>
+                <div className="mt-1 text-[16px] font-semibold text-text">
+                  {state === "IDLE" ? "—" : `${forwardRate.toLocaleString("en-US", { maximumFractionDigits: 2 })} NGN/USD`}
+                </div>
+                <div className="mt-1">
+                  {state === "REQUESTING"
+                    ? "Requesting prices..."
+                    : state === "IDLE"
+                      ? "Awaiting quote"
+                      : `Forward points +${forwardPoints.toFixed(2)} (${hedgeCostPct.toFixed(2)}%)`}
+                </div>
+              </div>
+
+              <PrimaryButton type="button" onClick={requestQuotes}>
+                Request Quotes
+              </PrimaryButton>
+              <HelperText className="text-[11px]">Quotes valid for 30s after response.</HelperText>
+
+              <button
+                type="button"
+                onClick={clearForm}
+                className="text-left text-[12px] font-semibold text-muted"
+              >
+                Clear
+              </button>
+            </>
+          ) : (
+            <>
+              <div>
+                <FieldLabel htmlFor="pair">Pair</FieldLabel>
+                <DropdownSelect
+                  value={pair}
+                  options={pairOptions}
+                  onChange={setPair}
+                />
+                <HelperText className="mt-1 text-[11px]">
+                  Spot:{" "}
+                  <span className="text-text">
+                    {hasValidSpot ? spot.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—"}
+                  </span>{" "}
+                  {quoteCurrency} per {baseCurrency}
+                </HelperText>
+              </div>
+
+              <div>
+                <FieldLabel>Option Type</FieldLabel>
+                <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-panel-2/60 p-1">
+                  {optionOptions.map((option) => {
+                    const isActive = option.value === optionType;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setOptionType(option.value)}
+                        className={
+                          isActive
+                            ? "h-7 rounded-lg bg-white text-sm font-medium text-black"
+                            : "h-7 rounded-lg text-sm font-medium text-muted"
+                        }
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                <div>
+                  <FieldLabel htmlFor="expiry">Expiry</FieldLabel>
+                  <div ref={calendarRef} className="relative">
+                    <button
+                      id="expiry"
+                      type="button"
+                      onClick={() => {
+                        setCalendarMonth(parseIsoDate(expiryDate));
+                        setIsCalendarOpen((prev) => !prev);
+                      }}
+                      className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-panel-2/50 px-4 text-sm text-text"
+                    >
+                      <span>{formatDateInput(expiryDate)}</span>
+                      <Calendar className="h-4 w-4 text-muted" />
+                    </button>
+
+                    {isCalendarOpen ? (
+                      <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[300px] rounded-2xl border border-border/70 bg-panel p-4 shadow-panel backdrop-blur-panel">
+                        <div className="mb-3 flex items-center justify-between px-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCalendarMonth(
+                                new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1)
+                              )
+                            }
+                            className="h-8 w-8 rounded-full text-[24px] leading-none text-text"
+                            aria-label="Previous month"
+                          >
+                            ‹
+                          </button>
+                          <div className="text-[16px] font-semibold text-text">
+                            {calendarMonth.toLocaleDateString("en-US", {
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCalendarMonth(
+                                new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1)
+                              )
+                            }
+                            className="h-8 w-8 rounded-full text-[24px] leading-none text-text"
+                            aria-label="Next month"
+                          >
+                            ›
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-muted">
+                          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                            <div key={day} className="py-1">
+                              {day}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-1 grid grid-cols-7 gap-y-1 text-center">
+                          {Array.from({ length: 42 }, (_, idx) => {
+                            const year = calendarMonth.getFullYear();
+                            const month = calendarMonth.getMonth();
+                            const firstDay = new Date(year, month, 1).getDay();
+                            const daysInMonth = new Date(year, month + 1, 0).getDate();
+                            const dayNumber = idx - firstDay + 1;
+                            const inMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
+                            const date = new Date(year, month, dayNumber);
+                            const iso = toIsoDate(date);
+                            const isDisabled = !inMonth || iso < minDateIso;
+                            const isSelected = inMonth && iso === expiryDate;
+
+                            return (
+                              <button
+                                key={`${year}-${month}-${idx}`}
+                                type="button"
+                                disabled={isDisabled}
+                                onClick={() => {
+                                  setExpiryDate(iso);
+                                  setIsCalendarOpen(false);
+                                }}
+                                className={`mx-auto h-8 w-8 rounded-[9px] text-[14px] ${
+                                  isSelected
+                                    ? "bg-white font-semibold text-black"
+                                    : isDisabled
+                                      ? "text-muted/50"
+                                      : "text-text"
+                                }`}
+                              >
+                                {inMonth ? dayNumber : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  <HelperText className="mt-1 text-[11px]">
+                    {typeof expiryCountdownDays === "number" ? `${expiryCountdownDays} days` : "—"}
+                  </HelperText>
+                </div>
+
                 <div>
                   <FieldLabel htmlFor="strike">Strike</FieldLabel>
                   <div className="relative">
-                  <TextField
-                    id="strike"
-                    value={strike}
-                    onChange={(event) => setStrike(event.target.value)}
-                    placeholder="2,200.00"
-                    className="pr-28"
-                  />
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-[9px] leading-none font-semibold text-muted">
-                    {quoteCurrency} per {baseCurrency}
-                  </span>
+                    <TextField
+                      id="strike"
+                      value={strike}
+                      onChange={(event) => setStrike(event.target.value)}
+                      placeholder="2,200.00"
+                      className="pr-28"
+                    />
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-[9px] leading-none font-semibold text-muted">
+                      {quoteCurrency} per {baseCurrency}
+                    </span>
                   </div>
                   <HelperText className="mt-1 text-[11px]">{moneyness}</HelperText>
                 </div>
-              ) : null}
-            </div>
-
-            <div>
-              <FieldLabel htmlFor="notional">Notional</FieldLabel>
-              <div className="relative">
-              <TextField
-                id="notional"
-                value={notional}
-                onChange={(event) => setNotional(event.target.value)}
-                placeholder="10,000"
-                className="px-8 pr-14"
-              />
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted">
-                {baseCurrency}
-              </span>
               </div>
-            </div>
 
-            {mode === "options" ? (
+              <div>
+                <FieldLabel htmlFor="notional">Notional</FieldLabel>
+                <div className="relative">
+                  <TextField
+                    id="notional"
+                    value={notional}
+                    onChange={(event) => setNotional(event.target.value)}
+                    placeholder="10,000"
+                    className="px-8 pr-14"
+                  />
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted">
+                    {baseCurrency}
+                  </span>
+                </div>
+              </div>
+
               <div className="rounded-xl border border-border/70 bg-panel-2/50 px-3 py-2 text-[11px] text-muted">
                 <div className="flex items-center justify-between">
                   <span>Indicative all-in premium</span>
@@ -722,13 +917,15 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
                       : "Awaiting quote"}
                 </div>
               </div>
-            ) : null}
 
-            <PrimaryButton type="button" onClick={requestQuotes}>
-              Request Quotes
-            </PrimaryButton>
-            <HelperText className="text-[11px]">Quotes valid for 30s after response.</HelperText>
+              <PrimaryButton type="button" onClick={requestQuotes}>
+                Request Quotes
+              </PrimaryButton>
+              <HelperText className="text-[11px]">Quotes valid for 30s after response.</HelperText>
+            </>
+          )}
 
+          {mode === "options" ? (
             <button
               type="button"
               onClick={clearForm}
@@ -736,6 +933,7 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
             >
               Clear
             </button>
+          ) : null}
         </section>
 
           {selectedQuote ? (
@@ -745,28 +943,47 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
               <div className="grid grid-cols-2 gap-y-1 text-[12px]">
                 <span className="text-muted">Type</span>
                 <span className="text-right text-text">
-                  {mode === "options" ? optionType.toUpperCase() : "FUTURES"}
+                  {mode === "options" ? optionType.toUpperCase() : "FORWARDS"}
                 </span>
                 <span className="text-muted">Pair</span>
                 <span className="text-right text-text">{pair}</span>
+                {mode === "futures" ? (
+                  <>
+                    <span className="text-muted">Direction</span>
+                    <span className="text-right text-text">
+                      {forwardDirection === "buy_usd" ? "BUY USD FORWARD" : "SELL USD FORWARD"}
+                    </span>
+                  </>
+                ) : null}
                 <span className="text-muted">Notional ({baseCurrency})</span>
                 <span className="text-right text-text">{toMoney(parsedNotional)}</span>
-                <span className="text-muted">Expiry</span>
-                <span className="text-right text-text">{displayExpiry}</span>
+                <span className="text-muted">{mode === "futures" ? "Tenor" : "Expiry"}</span>
+                <span className="text-right text-text">{mode === "futures" ? forwardTenorLabel : displayExpiry}</span>
                 {mode === "options" ? (
                   <>
                     <span className="text-muted">Strike</span>
                     <span className="text-right text-text">{strike || "-"}</span>
                   </>
                 ) : null}
-                <span className="text-muted">Premium</span>
-                <span className="text-right text-text">{toMoney(selectedQuote.premium)}</span>
-                <span className="text-muted">Fees</span>
-                <span className="text-right text-text">{toMoney(selectedQuote.fees)}</span>
-                <span className="font-semibold text-text">Total cost</span>
-                <span className="text-right font-semibold text-text">
-                  {toMoney(selectedQuote.premium + selectedQuote.fees)}
-                </span>
+                {mode === "futures" ? (
+                  <>
+                    <span className="text-muted">Forward Rate</span>
+                    <span className="text-right text-text">{forwardRate.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
+                    <span className="text-muted">Settlement Amount</span>
+                    <span className="text-right text-text">₦{settlementAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-muted">Premium</span>
+                    <span className="text-right text-text">{toMoney(selectedQuote.premium)}</span>
+                    <span className="text-muted">Fees</span>
+                    <span className="text-right text-text">{toMoney(selectedQuote.fees)}</span>
+                    <span className="font-semibold text-text">Total cost</span>
+                    <span className="text-right font-semibold text-text">
+                      {toMoney(selectedQuote.premium + selectedQuote.fees)}
+                    </span>
+                  </>
+                )}
               </div>
 
               {(state === "QUOTE_SELECTED" || state === "SIGNING" || state === "PENDING" || state === "DONE") && (
@@ -800,11 +1017,18 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
         mode={mode}
         pair={pair}
         optionType={optionType}
-        spot={hasValidSpot ? spot : null}
+        spot={displaySpot}
         strike={parsedStrike}
         daysToExpiry={expiryCountdownDays}
         premiumUSDC={panelPremium}
         spotHistory={spotHistory}
+        forwardDirection={forwardDirection}
+        tenorLabel={forwardTenorLabel}
+        forwardRate={forwardRate}
+        forwardPoints={forwardPoints}
+        hedgeCostPct={hedgeCostPct}
+        settlementAmount={settlementAmount}
+        notional={parsedNotional}
       />
       </div>
 
@@ -812,7 +1036,9 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4">
           <div className="w-full max-w-[360px] rounded-2xl border border-border/70 bg-panel p-4 shadow-panel backdrop-blur-panel">
             <div className="flex items-center justify-between">
-              <div className="text-[12px] font-semibold text-muted">Quotes</div>
+              <div className="text-[12px] font-semibold text-muted">
+                {mode === "futures" ? "Forward Prices" : "Quotes"}
+              </div>
               <button
                 type="button"
                 onClick={() => setIsQuotePopupOpen(false)}
@@ -851,7 +1077,7 @@ export function ForwardInterface({ mode }: ForwardInterfaceProps) {
                     disabled={expired || state === "SIGNING" || state === "PENDING" || state === "DONE"}
                     className="mt-2 h-8 w-full rounded-lg border border-border/70 px-3 text-[12px] font-semibold text-text disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Accept
+                    {mode === "futures" ? "Select Price" : "Accept"}
                   </button>
                 </div>
               ))}

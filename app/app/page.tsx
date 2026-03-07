@@ -113,7 +113,7 @@ export default function AppPage() {
         value={mode}
         onChange={setMode}
         options={[
-          { label: "Futures", value: "futures" },
+          { label: "Forwards", value: "futures" },
           { label: "Options", value: "options" },
         ]}
       />
