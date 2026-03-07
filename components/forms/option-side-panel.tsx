@@ -171,7 +171,7 @@ export function OptionSidePanel({
         </div>
 
         <section className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1">
             <div className="rounded-[10px] border border-border/70 bg-panel-2/50 px-2.5 py-2">
               <div className="text-[10px] font-semibold text-muted">Spot (NGN per USD)</div>
               <div className="mt-0.5 text-[14px] font-semibold text-text">{formatTwo(safeSpot)}</div>
